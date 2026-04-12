@@ -1,4 +1,5 @@
 #include "../../include/pieces/Piece.hpp"
+#include "../../include/strategy/StrategieDeplacement.hpp"
 
 namespace Yalta {
 
@@ -8,11 +9,19 @@ Piece::Piece(Couleur couleur, std::string nom) {
     this->nom = nom;
     this->caseActuelle = nullptr;
     this->estVivante = true;
+    this->strategie = nullptr;
 }
 
 // Destructeur
 Piece::~Piece() {
-    caseActuelle = nullptr;
+    delete strategie;
+    strategie = nullptr;
+}
+
+// getDeplacements délègue à la stratégie
+std::vector<Case*> Piece::getDeplacements(
+    std::vector<std::vector<Case*>>& plateau) {
+    return strategie->calculerDeplacements(this, plateau);
 }
 
 // Getters
@@ -32,6 +41,10 @@ std::string Piece::getNom() const {
     return nom;
 }
 
+StrategieDeplacement* Piece::getStrategie() const {
+    return strategie;
+}
+
 // Setters
 void Piece::setCaseActuelle(Case* c) {
     this->caseActuelle = c;
@@ -41,4 +54,8 @@ void Piece::setEstVivante(bool vivante) {
     this->estVivante = vivante;
 }
 
-} // namespace Yalta
+void Piece::setStrategie(StrategieDeplacement* s) {
+    this->strategie = s;
+}
+
+} 

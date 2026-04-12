@@ -6,6 +6,7 @@
 namespace Yalta {
 
 class Case;
+class StrategieDeplacement;
 
 /**
  * @brief Classe abstraite représentant une pièce du jeu Yalta
@@ -23,10 +24,11 @@ public:
     };
 
 protected:
-    Couleur couleur;      ///< Couleur de la pièce
-    Case* caseActuelle;   ///< Case sur laquelle se trouve la pièce
-    bool estVivante;      ///< true si la pièce est en jeu
-    std::string nom;      ///< Nom de la pièce
+    Couleur couleur;                    ///< Couleur de la pièce
+    Case* caseActuelle;                 ///< Case actuelle de la pièce
+    bool estVivante;                    ///< true si la pièce est en jeu
+    std::string nom;                    ///< Nom de la pièce
+    StrategieDeplacement* strategie;    ///< Stratégie de déplacement
 
 public:
     /**
@@ -42,22 +44,24 @@ public:
     virtual ~Piece();
 
     /**
-     * @brief Retourne les cases disponibles pour cette pièce
+     * @brief Retourne les cases disponibles
      * @param plateau Le plateau de jeu
      * @return Liste des cases accessibles
      */
-    virtual std::vector<Case*> getDeplacements(
-        std::vector<std::vector<Case*>>& plateau) = 0;
+    std::vector<Case*> getDeplacements(
+        std::vector<std::vector<Case*>>& plateau);
 
     // Getters
     Couleur getCouleur() const;
     Case* getCaseActuelle() const;
     bool getEstVivante() const;
     std::string getNom() const;
+    StrategieDeplacement* getStrategie() const;
 
     // Setters
     void setCaseActuelle(Case* c);
     void setEstVivante(bool vivante);
+    void setStrategie(StrategieDeplacement* s);
 };
 
-} // namespace Yalta
+} 
