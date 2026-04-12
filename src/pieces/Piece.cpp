@@ -1,6 +1,6 @@
 #include "pieces/Piece.hpp"
 #include "model/Case.hpp"  // include complet ici
-
+#include "model/Plateau.hpp"
 Piece::Piece(const std::string& couleur, std::shared_ptr<Case> position)
     : couleur(couleur), position(position), estVivanteFlag(true) {
 }

@@ -8,6 +8,8 @@
 // Forward declaration : Piece référence Case dans ses méthodes
 class Case;
 
+class Plateau; 
+
 class Piece {
 protected:
     std::string couleur;             // "blanc", "noir", "rouge"
@@ -18,13 +20,12 @@ public:
     // Constructeur
     Piece(const std::string& couleur, std::shared_ptr<Case> position);
 
-    // ⚠️ TRÈS IMPORTANT en C++ : destructeur virtuel dans une classe de base
+    //  TRÈS IMPORTANT en C++ : destructeur virtuel dans une classe de base
     // Sans ça, supprimer une Roi via un pointeur Piece* fuirait la mémoire
     virtual ~Piece() = default;
 
-    // Méthode virtuelle pure : chaque sous-classe DOIT l'implémenter
-    // Le "= 0" rend Piece abstraite (impossible à instancier directement)
-    virtual std::vector<std::shared_ptr<Case>> getDeplacements() const = 0;
+    // Méthode virtuelle pure pour obtenir les déplacements possibles
+   virtual std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const = 0;
 
     // Méthode virtuelle pure pour identifier le type ("Roi", "Reine", etc.)
     // Utile pour l'affichage et la sérialisation
