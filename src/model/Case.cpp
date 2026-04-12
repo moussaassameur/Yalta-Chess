@@ -1,16 +1,25 @@
 #include "model/Case.hpp"
-#include "pieces/Piece.hpp"  // ici on inclut le header complet (forward decl ne suffit plus)
+#include "pieces/Piece.hpp"
+#include <cstdlib>  // pour std::abs
 
-Case::Case(int ligne, int colonne, const std::string& couleur)
-    : ligne(ligne), colonne(colonne), piece(nullptr), couleur(couleur) {
+Case::Case(int q, int r, const std::string& couleur, int secteur)
+    : q(q), r(r), piece(nullptr), couleur(couleur), secteur(secteur) {
 }
 
-int Case::getLigne() const {
-    return ligne;
+int Case::getQ() const {
+    return q;
 }
 
-int Case::getColonne() const {
-    return colonne;
+int Case::getR() const {
+    return r;
+}
+
+int Case::getS() const {
+    return -q - r;  // règle fondamentale : q + r + s = 0
+}
+
+int Case::getSecteur() const {
+    return secteur;
 }
 
 std::string Case::getCouleur() const {
@@ -31,4 +40,12 @@ void Case::retirerPiece() {
 
 bool Case::estOccupee() const {
     return piece != nullptr;
+}
+
+int Case::distance(const Case& a, const Case& b) {
+    return (std::abs(a.q - b.q) + std::abs(a.r - b.r) + std::abs(a.getS() - b.getS())) / 2;
+}
+
+bool Case::operator==(const Case& autre) const {
+    return q == autre.q && r == autre.r;
 }

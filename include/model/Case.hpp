@@ -4,28 +4,26 @@
 #include <string>
 #include <memory>
 
-// Forward declaration : Case et Piece se référencent mutuellement,
-// donc on déclare juste l'existence de Piece sans inclure son header.
-// L'include complet sera dans Case.cpp.
 class Piece;
 
 class Case {
 private:
-    int ligne;
-    int colonne;
-    std::shared_ptr<Piece> piece;  // nullptr si la case est vide
-    std::string couleur;            // couleur de la case du plateau ("clair", "fonce", etc.)
+    int q;                           // coordonnée axiale q
+    int r;                           // coordonnée axiale r
+    std::shared_ptr<Piece> piece;    // nullptr si la case est vide
+    std::string couleur;             // couleur de la case ("clair", "moyen", "fonce")
+    int secteur;                     // 0, 1 ou 2 — quel tiers du plateau (joueur 1/2/3)
 
 public:
     // Constructeur
-    Case(int ligne, int colonne, const std::string& couleur);
-
-    // Destructeur par défaut (les shared_ptr se nettoient tout seuls)
+    Case(int q, int r, const std::string& couleur, int secteur);
     ~Case() = default;
 
     // Getters
-    int getLigne() const;
-    int getColonne() const;
+    int getQ() const;
+    int getR() const;
+    int getS() const;                // calculé : s = -q - r
+    int getSecteur() const;
     std::string getCouleur() const;
     std::shared_ptr<Piece> getPiece() const;
 
@@ -33,8 +31,14 @@ public:
     void setPiece(std::shared_ptr<Piece> nouvellePiece);
     void retirerPiece();
 
-    // Méthode utile
+    // Méthodes utiles
     bool estOccupee() const;
+
+    // Distance hexagonale entre 2 cases (utile pour l'IA et la validation)
+    static int distance(const Case& a, const Case& b);
+
+    // Égalité (utile pour comparer des cases dans des listes)
+    bool operator==(const Case& autre) const;
 };
 
 #endif // CASE_HPP
