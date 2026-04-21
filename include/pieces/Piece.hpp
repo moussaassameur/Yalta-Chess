@@ -1,44 +1,34 @@
 #ifndef PIECE_HPP
 #define PIECE_HPP
 
-#include <string>
+#include "model/Couleur.hpp"
 #include <vector>
 #include <memory>
 
-// Forward declaration : Piece référence Case dans ses méthodes
 class Case;
-
-class Plateau; 
+class Plateau;
 
 class Piece {
 protected:
-    std::string couleur;             // "blanc", "noir", "rouge"
-    std::shared_ptr<Case> position;  // case où se trouve la pièce
-    bool estVivanteFlag;             // true tant que la pièce n'est pas capturée
+    Couleur couleur;
+    std::shared_ptr<Case> position;
+    bool estVivanteFlag;
 
 public:
-    // Constructeur
-    Piece(const std::string& couleur, std::shared_ptr<Case> position);
-
-    //  TRÈS IMPORTANT en C++ : destructeur virtuel dans une classe de base
-    // Sans ça, supprimer une Roi via un pointeur Piece* fuirait la mémoire
+    Piece(Couleur couleur, std::shared_ptr<Case> position);
     virtual ~Piece() = default;
 
-    // Méthode virtuelle pure pour obtenir les déplacements possibles
-   virtual std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const = 0;
-
-    // Méthode virtuelle pure pour identifier le type ("Roi", "Reine", etc.)
-    // Utile pour l'affichage et la sérialisation
+    virtual std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const = 0;
     virtual std::string getType() const = 0;
 
-    // Méthodes communes à toutes les pièces (non-virtuelles)
     bool estVivante() const;
     void deplacer(std::shared_ptr<Case> cible);
-    void capturer();  // marque la pièce comme morte
+    void capturer();
+    void ressusciter();  // remet la pièce en vie lors d'un annuler()
 
-    // Getters
-    std::string getCouleur() const;
+    Couleur getCouleur() const;
     std::shared_ptr<Case> getPosition() const;
+    void setPosition(std::shared_ptr<Case> nouvelleCase);
 };
 
 #endif // PIECE_HPP
