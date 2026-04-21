@@ -2,30 +2,30 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Pion::Pion(const std::string& couleur, std::shared_ptr<Case> position)
+Pion::Pion(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position), aDejaBouge(false) {
 }
 
 void Pion::getDirectionAvancement(int& dq, int& dr) const {
     // Chaque couleur a sa propre direction d'avancement sur l'hexagone
-    if (couleur == "blanc") {
+    if (couleur == Couleur::BLANC) {
         dq = 0; dr = -1;
-    } else if (couleur == "noir") {
+    } else if (couleur == Couleur::NOIR) {
         dq = -1; dr = +1;
-    } else { // "rouge"
+    } else { // ROUGE
         dq = +1; dr = 0;
     }
 }
 
 void Pion::getDirectionsCaptures(int& dq1, int& dr1, int& dq2, int& dr2) const {
     // Les 2 diagonales de capture, qui encadrent la direction d'avancement
-    if (couleur == "blanc") {
+    if (couleur == Couleur::BLANC) {
         dq1 = +1; dr1 = -1;
         dq2 = -1; dr2 =  0;
-    } else if (couleur == "noir") {
+    } else if (couleur == Couleur::NOIR) {
         dq1 =  0; dr1 = +1;
         dq2 = -1; dr2 =  0;
-    } else { // "rouge"
+    } else { // ROUGE
         dq1 = +1; dr1 = -1;
         dq2 =  0; dr2 = +1;
     }

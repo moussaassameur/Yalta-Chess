@@ -2,7 +2,7 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Fou::Fou(const std::string& couleur, std::shared_ptr<Case> position)
+Fou::Fou(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position) {
 }
 

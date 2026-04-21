@@ -2,7 +2,7 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Roi::Roi(const std::string& couleur, std::shared_ptr<Case> position)
+Roi::Roi(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position), aDejaBouge(false) {
 }
 

@@ -2,7 +2,7 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Reine::Reine(const std::string& couleur, std::shared_ptr<Case> position)
+Reine::Reine(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position) {
 }
 

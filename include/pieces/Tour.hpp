@@ -8,7 +8,7 @@ private:
     bool aDejaBouge;  // pour le roque
 
 public:
-    Tour(const std::string& couleur, std::shared_ptr<Case> position);
+    Tour(Couleur couleur, std::shared_ptr<Case> position);
     ~Tour() override = default;
 
     std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;

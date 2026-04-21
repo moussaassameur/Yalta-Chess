@@ -5,7 +5,7 @@
 
 class Reine : public Piece {
 public:
-    Reine(const std::string& couleur, std::shared_ptr<Case> position);
+    Reine(Couleur couleur, std::shared_ptr<Case> position);
     ~Reine() override = default;
 
     std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;

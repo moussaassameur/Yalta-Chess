@@ -8,7 +8,7 @@ private:
     bool aDejaBouge;  // false au départ, true après le premier coup
 
 public:
-    Pion(const std::string& couleur, std::shared_ptr<Case> position);
+    Pion(Couleur couleur, std::shared_ptr<Case> position);
     ~Pion() override = default;
 
     std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;

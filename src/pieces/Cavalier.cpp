@@ -2,7 +2,7 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Cavalier::Cavalier(const std::string& couleur, std::shared_ptr<Case> position)
+Cavalier::Cavalier(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position) {
 }
 

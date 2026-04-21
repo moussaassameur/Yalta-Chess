@@ -2,7 +2,7 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Tour::Tour(const std::string& couleur, std::shared_ptr<Case> position)
+Tour::Tour(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position), aDejaBouge(false) {
 }
 
