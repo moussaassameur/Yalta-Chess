@@ -6,38 +6,47 @@
 
 class Piece;
 
+// Une case du plateau Yalta (modele 6 sextants).
+// Coords principales : (x, y) sur une grille virtuelle 12x12 avec trous.
+//   - x, y : 0..11
+//   - sextant : 0..5 (le sextant geometrique auquel appartient la case)
+// Seules ~96 cases sur 144 sont valides (6 sextants x 4x4 = 96).
+// On expose getQ()/getR() = (x, y) pour la compatibilite avec
+// l API getCase(q, r) deja utilisee dans le projet.
 class Case {
 private:
-    int q;                           // coordonnée axiale q
-    int r;                           // coordonnée axiale r
-    std::shared_ptr<Piece> piece;    // nullptr si la case est vide
-    std::string couleur;             // couleur de la case ("clair", "moyen", "fonce")
-    int secteur;                     // 0, 1 ou 2 — quel tiers du plateau (joueur 1/2/3)
+    int x;
+    int y;
+    int sextant;
+    std::shared_ptr<Piece> piece;
+    std::string couleur;  // "clair" ou "fonce"
 
 public:
-    // Constructeur
-    Case(int q, int r, const std::string& couleur, int secteur);
+    Case(int x, int y, int sextant, const std::string& couleur);
     ~Case() = default;
 
-    // Getters
+    int getX() const;
+    int getY() const;
+    int getSextant() const;
+
+    // Compat (q, r) — equivalent a (x, y)
     int getQ() const;
     int getR() const;
-    int getS() const;                // calculé : s = -q - r
-    int getSecteur() const;
+    int getS() const;        // toujours 0
+    int getSecteur() const;  // alias getSextant()
+
+    std::string getPosition() const;  // "x,y" en chaine
+
     std::string getCouleur() const;
     std::shared_ptr<Piece> getPiece() const;
 
-    // Setters / modifications
     void setPiece(std::shared_ptr<Piece> nouvellePiece);
     void retirerPiece();
 
-    // Méthodes utiles
     bool estOccupee() const;
 
-    // Distance hexagonale entre 2 cases (utile pour l'IA et la validation)
     static int distance(const Case& a, const Case& b);
 
-    // Égalité (utile pour comparer des cases dans des listes)
     bool operator==(const Case& autre) const;
 };
 

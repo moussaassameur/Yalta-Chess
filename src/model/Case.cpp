@@ -1,51 +1,41 @@
 #include "model/Case.hpp"
 #include "pieces/Piece.hpp"
-#include <cstdlib>  // pour std::abs
+#include <cstdlib>
+#include <string>
 
-Case::Case(int q, int r, const std::string& couleur, int secteur)
-    : q(q), r(r), piece(nullptr), couleur(couleur), secteur(secteur) {
+Case::Case(int x, int y, int sextant, const std::string& couleur)
+    : x(x), y(y), sextant(sextant),
+      piece(nullptr), couleur(couleur) {
 }
 
-int Case::getQ() const {
-    return q;
+int Case::getX() const { return x; }
+int Case::getY() const { return y; }
+int Case::getSextant() const { return sextant; }
+
+int Case::getQ() const { return x; }
+int Case::getR() const { return y; }
+int Case::getS() const { return 0; }
+int Case::getSecteur() const { return sextant; }
+
+std::string Case::getPosition() const {
+    return std::to_string(x) + "," + std::to_string(y);
 }
 
-int Case::getR() const {
-    return r;
-}
+std::string Case::getCouleur() const { return couleur; }
 
-int Case::getS() const {
-    return -q - r;  // règle fondamentale : q + r + s = 0
-}
+std::shared_ptr<Piece> Case::getPiece() const { return piece; }
 
-int Case::getSecteur() const {
-    return secteur;
-}
+void Case::setPiece(std::shared_ptr<Piece> nouvellePiece) { piece = nouvellePiece; }
+void Case::retirerPiece() { piece = nullptr; }
 
-std::string Case::getCouleur() const {
-    return couleur;
-}
-
-std::shared_ptr<Piece> Case::getPiece() const {
-    return piece;
-}
-
-void Case::setPiece(std::shared_ptr<Piece> nouvellePiece) {
-    piece = nouvellePiece;
-}
-
-void Case::retirerPiece() {
-    piece = nullptr;
-}
-
-bool Case::estOccupee() const {
-    return piece != nullptr;
-}
+bool Case::estOccupee() const { return piece != nullptr; }
 
 int Case::distance(const Case& a, const Case& b) {
-    return (std::abs(a.q - b.q) + std::abs(a.r - b.r) + std::abs(a.getS() - b.getS())) / 2;
+    int dx = std::abs(a.x - b.x);
+    int dy = std::abs(a.y - b.y);
+    return std::max(dx, dy);  // distance de Chebyshev
 }
 
 bool Case::operator==(const Case& autre) const {
-    return q == autre.q && r == autre.r;
+    return x == autre.x && y == autre.y;
 }
