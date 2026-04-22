@@ -16,33 +16,43 @@ Plateau::Plateau() {
     initialiserPieces();
 }
 
+// Cree 96 cases dans une grille virtuelle 12x12 avec trous.
+// Le plateau hexagonal Yalta est divise en 6 sextants (rhombes), chacun
+// contenant 4x4 = 16 cases. La grille 12x12 est decoupee en 9 blocs 4x4
+// dont seulement 6 sont des sextants valides ; les 3 autres restent vides.
+//
+// Mapping des sextants :
+//   sextant 0 : x in [0,4),  y in [0,4)    -> coin v5 (bas-gauche du hexagone)
+//   sextant 1 : x in [0,4),  y in [4,8)    -> coin v6 (gauche)
+//   sextant 2 : x in [8,12), y in [4,8)    -> coin v1 (haut-gauche)
+//   sextant 3 : x in [8,12), y in [8,12)   -> coin v2 (haut-droite)
+//   sextant 4 : x in [4,8),  y in [8,12)   -> coin v3 (droite)
+//   sextant 5 : x in [4,8),  y in [0,4)    -> coin v4 (bas-droite)
 void Plateau::creerCases() {
-    const int rayon = 5;
-    for (int q = -rayon; q <= rayon; q++) {
-        int r1 = std::max(-rayon, -q - rayon);
-        int r2 = std::min(rayon,  -q + rayon);
-        for (int r = r1; r <= r2; r++) {
-            // on determine le secteur de la case selon sa position
-            // 0 pour blanc, 1 pour noir, 2 pour rouge
-            int secteur = 0;
-            if (q > 0 && r >= 0)       secteur = 1;
-            else if (q <= 0 && r > 0)  secteur = 2;
+    struct Bloc { int x0; int x1; int y0; int y1; int sextant; };
+    const Bloc blocs[6] = {
+        { 0,  4,  0,  4, 0 },
+        { 0,  4,  4,  8, 1 },
+        { 8, 12,  4,  8, 2 },
+        { 8, 12,  8, 12, 3 },
+        { 4,  8,  8, 12, 4 },
+        { 4,  8,  0,  4, 5 },
+    };
 
-            // on calcule la couleur visuelle de la case avec le modulo
-            int c = ((q - r) % 3 + 3) % 3;
-            std::string couleurCase;
-            if (c == 0)      couleurCase = "clair";
-            else if (c == 1) couleurCase = "moyen";
-            else             couleurCase = "fonce";
-
-            cases[{q, r}] = std::make_shared<Case>(q, r, couleurCase, secteur);
+    for (const auto& b : blocs) {
+        for (int x = b.x0; x < b.x1; x++) {
+            for (int y = b.y0; y < b.y1; y++) {
+                // Damier : couleur depend de (x + y + sextant) parite
+                std::string couleurCase =
+                    ((x + y + b.sextant) % 2 == 0) ? "clair" : "fonce";
+                cases[{x, y}] = std::make_shared<Case>(x, y, b.sextant, couleurCase);
+            }
         }
     }
 }
 
 std::shared_ptr<Case> Plateau::getCase(int q, int r) const {
     auto it = cases.find({q, r});
-    // si la case existe pas on retourne nullptr
     return (it != cases.end()) ? it->second : nullptr;
 }
 
@@ -59,58 +69,73 @@ std::vector<std::shared_ptr<Case>> Plateau::getCasesLibres() const {
     return res;
 }
 
+// Placement initial Yalta.
+// Chaque joueur possede 2 sextants adjacents. Sa back-rank (8 pieces) longe
+// le bord exterieur du hexagone forme par ses 2 sextants reunis :
+//   - Une moitie de back-rank vient d'un sextant (rangee y_local=0)
+//   - L'autre moitie vient du sextant adjacent (colonne x_local=0)
+// La rangee de pions est juste a l'interieur de la back-rank.
+//
+// Repartition des sextants par joueur :
+//   BLANC  = sextants 0 + 5 (bas du hexagone)
+//   ROUGE  = sextants 1 + 2 (gauche du hexagone)
+//   NOIR   = sextants 3 + 4 (droite du hexagone)
 void Plateau::initialiserPieces() {
-    // fonction lambda pour placer une piece sur une case facilement
-    auto placer = [&](int q, int r, std::shared_ptr<Piece> p) {
-        auto c = getCase(q, r);
+    auto placer = [&](int x, int y, std::shared_ptr<Piece> p) {
+        auto c = getCase(x, y);
         if (c) { c->setPiece(p); p->setPosition(c); }
     };
 
-    // pieces du joueur blanc en bas du plateau
-    placer( 0,  5, std::make_shared<Roi>     (Couleur::BLANC, nullptr));
-    placer(-1,  5, std::make_shared<Reine>   (Couleur::BLANC, nullptr));
-    placer( 1,  5, std::make_shared<Fou>     (Couleur::BLANC, nullptr));
-    placer(-2,  5, std::make_shared<Fou>     (Couleur::BLANC, nullptr));
-    placer( 2,  5, std::make_shared<Cavalier>(Couleur::BLANC, nullptr));
-    placer(-3,  5, std::make_shared<Cavalier>(Couleur::BLANC, nullptr));
-    placer( 3,  5, std::make_shared<Tour>    (Couleur::BLANC, nullptr));
-    placer(-4,  5, std::make_shared<Tour>    (Couleur::BLANC, nullptr));
-    // pions blancs sur la rangee r=4
-    for (int q = -4; q <= 4; q++) {
-        if (getCase(q, 4))
-            placer(q, 4, std::make_shared<Pion>(Couleur::BLANC, nullptr));
-    }
+    // ─── BLANC (sextants 0 + 5) ───
+    // Sextant 0 : back rank sur y=0, pions sur y=1
+    placer(0, 0, std::make_shared<Tour>    (Couleur::BLANC, nullptr));
+    placer(1, 0, std::make_shared<Cavalier>(Couleur::BLANC, nullptr));
+    placer(2, 0, std::make_shared<Fou>     (Couleur::BLANC, nullptr));
+    placer(3, 0, std::make_shared<Reine>   (Couleur::BLANC, nullptr));
+    for (int x = 0; x < 4; x++)
+        placer(x, 1, std::make_shared<Pion>(Couleur::BLANC, nullptr));
 
-    // pieces du joueur noir en haut a gauche
-    placer(-5,  0, std::make_shared<Roi>     (Couleur::NOIR, nullptr));
-    placer(-5,  1, std::make_shared<Reine>   (Couleur::NOIR, nullptr));
-    placer(-5, -1, std::make_shared<Fou>     (Couleur::NOIR, nullptr));
-    placer(-5,  2, std::make_shared<Fou>     (Couleur::NOIR, nullptr));
-    placer(-5, -2, std::make_shared<Cavalier>(Couleur::NOIR, nullptr));
-    placer(-5,  3, std::make_shared<Cavalier>(Couleur::NOIR, nullptr));
-    placer(-5, -3, std::make_shared<Tour>    (Couleur::NOIR, nullptr));
-    placer(-5,  4, std::make_shared<Tour>    (Couleur::NOIR, nullptr));
-    // pions noirs sur la colonne q=-4
-    for (int r = -4; r <= 4; r++) {
-        if (getCase(-4, r))
-            placer(-4, r, std::make_shared<Pion>(Couleur::NOIR, nullptr));
-    }
+    // Sextant 5 : back rank sur x=4 (col), pions sur x=5
+    placer(4, 0, std::make_shared<Tour>    (Couleur::BLANC, nullptr));
+    placer(4, 1, std::make_shared<Cavalier>(Couleur::BLANC, nullptr));
+    placer(4, 2, std::make_shared<Fou>     (Couleur::BLANC, nullptr));
+    placer(4, 3, std::make_shared<Roi>     (Couleur::BLANC, nullptr));
+    for (int y = 0; y < 4; y++)
+        placer(5, y, std::make_shared<Pion>(Couleur::BLANC, nullptr));
 
-    // pieces du joueur rouge en haut a droite
-    placer( 5, -5, std::make_shared<Roi>     (Couleur::ROUGE, nullptr));
-    placer( 5, -4, std::make_shared<Reine>   (Couleur::ROUGE, nullptr));
-    placer( 4, -5, std::make_shared<Fou>     (Couleur::ROUGE, nullptr));
-    placer( 5, -3, std::make_shared<Fou>     (Couleur::ROUGE, nullptr));
-    placer( 3, -5, std::make_shared<Cavalier>(Couleur::ROUGE, nullptr));
-    placer( 5, -2, std::make_shared<Cavalier>(Couleur::ROUGE, nullptr));
-    placer( 2, -5, std::make_shared<Tour>    (Couleur::ROUGE, nullptr));
-    placer( 5, -1, std::make_shared<Tour>    (Couleur::ROUGE, nullptr));
-    // pions rouges sur la diagonale q+r=4
-    for (int q = 1; q <= 5; q++) {
-        int r = 4 - q;
-        if (getCase(q, r))
-            placer(q, r, std::make_shared<Pion>(Couleur::ROUGE, nullptr));
-    }
+    // ─── ROUGE (sextants 1 + 2) ───
+    // Sextant 1 : back rank sur x=0 (col), pions sur x=1
+    placer(0, 4, std::make_shared<Tour>    (Couleur::ROUGE, nullptr));
+    placer(0, 5, std::make_shared<Cavalier>(Couleur::ROUGE, nullptr));
+    placer(0, 6, std::make_shared<Fou>     (Couleur::ROUGE, nullptr));
+    placer(0, 7, std::make_shared<Roi>     (Couleur::ROUGE, nullptr));
+    for (int y = 4; y < 8; y++)
+        placer(1, y, std::make_shared<Pion>(Couleur::ROUGE, nullptr));
+
+    // Sextant 2 : back rank sur y=4 (row), pions sur y=5
+    placer(8,  4, std::make_shared<Tour>    (Couleur::ROUGE, nullptr));
+    placer(9,  4, std::make_shared<Cavalier>(Couleur::ROUGE, nullptr));
+    placer(10, 4, std::make_shared<Fou>     (Couleur::ROUGE, nullptr));
+    placer(11, 4, std::make_shared<Reine>   (Couleur::ROUGE, nullptr));
+    for (int x = 8; x < 12; x++)
+        placer(x, 5, std::make_shared<Pion>(Couleur::ROUGE, nullptr));
+
+    // ─── NOIR (sextants 3 + 4) ───
+    // Sextant 4 : back rank sur y=8 (row), pions sur y=9
+    placer(4, 8, std::make_shared<Tour>    (Couleur::NOIR, nullptr));
+    placer(5, 8, std::make_shared<Cavalier>(Couleur::NOIR, nullptr));
+    placer(6, 8, std::make_shared<Fou>     (Couleur::NOIR, nullptr));
+    placer(7, 8, std::make_shared<Reine>   (Couleur::NOIR, nullptr));
+    for (int x = 4; x < 8; x++)
+        placer(x, 9, std::make_shared<Pion>(Couleur::NOIR, nullptr));
+
+    // Sextant 3 : back rank sur x=8 (col), pions sur x=9
+    placer(8,  8, std::make_shared<Tour>    (Couleur::NOIR, nullptr));
+    placer(8,  9, std::make_shared<Cavalier>(Couleur::NOIR, nullptr));
+    placer(8, 10, std::make_shared<Fou>     (Couleur::NOIR, nullptr));
+    placer(8, 11, std::make_shared<Roi>     (Couleur::NOIR, nullptr));
+    for (int y = 8; y < 12; y++)
+        placer(9, y, std::make_shared<Pion>(Couleur::NOIR, nullptr));
 }
 
 void Plateau::deplacerPiece(Coup& coup) {
@@ -119,7 +144,6 @@ void Plateau::deplacerPiece(Coup& coup) {
 
 void Plateau::placerRangee(Couleur /*couleur*/) {}
 
-// retourne toutes les pieces vivantes d une couleur donnee
 std::vector<std::shared_ptr<Piece>> Plateau::getPiecesDeCouleur(Couleur couleur) const {
     std::vector<std::shared_ptr<Piece>> res;
     for (const auto& p : cases) {
@@ -130,7 +154,6 @@ std::vector<std::shared_ptr<Piece>> Plateau::getPiecesDeCouleur(Couleur couleur)
     return res;
 }
 
-// retourne la case ou se trouve le roi de la couleur donnee
 std::shared_ptr<Case> Plateau::getCaseRoi(Couleur couleur) const {
     for (const auto& p : cases) {
         auto piece = p.second->getPiece();
@@ -142,7 +165,6 @@ std::shared_ptr<Case> Plateau::getCaseRoi(Couleur couleur) const {
     return nullptr;
 }
 
-// verifie si une case est menacee par n importe quelle piece d une couleur donnee
 bool Plateau::estMenacee(std::shared_ptr<Case> cible, Couleur attaquant) const {
     if (!cible) return false;
     auto piecesAttaquantes = getPiecesDeCouleur(attaquant);
@@ -155,13 +177,10 @@ bool Plateau::estMenacee(std::shared_ptr<Case> cible, Couleur attaquant) const {
     return false;
 }
 
-// verifie si le roi de la couleur donnee est en echec
-// en yalta le roi peut etre menace par n importe lequel des 2 autres joueurs
 bool Plateau::estEnEchec(Couleur couleurJoueur) const {
     auto caseRoi = getCaseRoi(couleurJoueur);
     if (!caseRoi) return false;
 
-    // on verifie si les 2 autres couleurs menacent le roi
     for (Couleur adversaire : {Couleur::BLANC, Couleur::NOIR, Couleur::ROUGE}) {
         if (adversaire == couleurJoueur) continue;
         if (estMenacee(caseRoi, adversaire)) return true;
@@ -169,14 +188,11 @@ bool Plateau::estEnEchec(Couleur couleurJoueur) const {
     return false;
 }
 
-// verifie si le joueur a au moins un coup legal
-// un coup est legal si apres l avoir joue le roi n est plus en echec
 bool Plateau::aDesCoupsLegaux(Couleur couleurJoueur) {
     auto pieces = getPiecesDeCouleur(couleurJoueur);
     for (const auto& piece : pieces) {
         auto casesAccessibles = piece->getDeplacements(*this);
         for (const auto& caseArrivee : casesAccessibles) {
-            // on simule le coup
             auto caseDepart = piece->getPosition();
             auto coup = std::make_shared<CoupSimple>(caseDepart, caseArrivee, piece);
             if (!coup->estValide(*this)) continue;
@@ -185,7 +201,6 @@ bool Plateau::aDesCoupsLegaux(Couleur couleurJoueur) {
             bool encoreEnEchec = estEnEchec(couleurJoueur);
             coup->annuler(*this);
 
-            // si ce coup sort le roi de l echec c est un coup legal
             if (!encoreEnEchec) return true;
         }
     }
