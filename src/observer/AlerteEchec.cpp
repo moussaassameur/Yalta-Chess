@@ -1,6 +1,7 @@
 #include "observer/AlerteEchec.hpp"
 #include "model/ModeleJeu.hpp"
 #include "model/EtatPartie.hpp"
+#include "joueur/Joueur.hpp"
 #include <iostream>
 
 void AlerteEchec::mettreAJour(const ModeleJeu& modele) {
