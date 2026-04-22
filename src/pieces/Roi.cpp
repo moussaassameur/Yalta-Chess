@@ -6,29 +6,27 @@ Roi::Roi(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position), aDejaBouge(false) {
 }
 
+// Roi : 1 case dans les 8 directions, sur la grille 12x12.
 std::vector<std::shared_ptr<Case>> Roi::getDeplacements(const Plateau& plateau) const {
     std::vector<std::shared_ptr<Case>> coups;
     if (position == nullptr) return coups;
 
-    // Les 6 directions hexagonales (Tour) + 6 diagonales (Fou) = 12 directions
-    // Le Roi se déplace d'1 case dans chacune
-    const int directions[12][2] = {
-        // Directions "Tour" (lignes droites hexagonales)
-        {+1,  0}, {-1,  0}, { 0, +1}, { 0, -1}, {+1, -1}, {-1, +1},
-        // Directions "Fou" (diagonales hexagonales)
-        {+1, +1}, {-1, -1}, {+2, -1}, {-2, +1}, {+1, -2}, {-1, +2}
+    const int dirs[8][2] = {
+        {+1,  0}, {-1,  0}, { 0, +1}, { 0, -1},
+        {+1, +1}, {+1, -1}, {-1, +1}, {-1, -1}
     };
 
-    int q = position->getQ();
-    int r = position->getR();
+    int x = position->getX();
+    int y = position->getY();
 
-    for (const auto& dir : directions) {
-        int nq = q + dir[0];
-        int nr = r + dir[1];
-        std::shared_ptr<Case> cible = plateau.getCase(nq, nr);
-        if (cible == nullptr) continue;  // hors plateau
+    for (const auto& d : dirs) {
+        int nx = x + d[0];
+        int ny = y + d[1];
+        if (nx < 0 || nx >= 12 || ny < 0 || ny >= 12) continue;
 
-        // Case libre ou occupée par un ennemi → coup valide
+        auto cible = plateau.getCase(nx, ny);
+        if (!cible) continue;
+
         if (!cible->estOccupee() || cible->getPiece()->getCouleur() != couleur) {
             coups.push_back(cible);
         }

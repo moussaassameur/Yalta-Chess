@@ -6,33 +6,27 @@ Cavalier::Cavalier(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position) {
 }
 
+// Cavalier : 8 sauts en L, saute les pieces, sur la grille 12x12.
 std::vector<std::shared_ptr<Case>> Cavalier::getDeplacements(const Plateau& plateau) const {
     std::vector<std::shared_ptr<Case>> coups;
     if (position == nullptr) return coups;
 
-    // Les 12 sauts du Cavalier hexagonal
-    // Sur un hexagone, un cavalier fait "2 cases dans une direction + 1 dans une direction
-    // adjacente". Avec 6 directions principales, ça donne 12 combinaisons possibles.
-    const int sauts[12][2] = {
-        {+1, +2}, {+2, +1},
-        {-1, -2}, {-2, -1},
-        {+1, -3}, {+3, -1},   // Note : -3 et +3 viennent de la combinaison
-        {-1, +3}, {-3, +1},   // de 2 directions hexagonales (pas une faute)
-        {+2, -3}, {+3, -2},
-        {-2, +3}, {-3, +2}
+    const int sauts[8][2] = {
+        {+1, +2}, {-1, +2}, {+1, -2}, {-1, -2},
+        {+2, +1}, {-2, +1}, {+2, -1}, {-2, -1}
     };
 
-    int q = position->getQ();
-    int r = position->getR();
+    int x = position->getX();
+    int y = position->getY();
 
-    // Le Cavalier SAUTE : il ne tient pas compte des pièces qu'il survole
-    for (const auto& saut : sauts) {
-        int nq = q + saut[0];
-        int nr = r + saut[1];
-        std::shared_ptr<Case> cible = plateau.getCase(nq, nr);
-        if (cible == nullptr) continue;  // hors plateau
+    for (const auto& s : sauts) {
+        int nx = x + s[0];
+        int ny = y + s[1];
+        if (nx < 0 || nx >= 12 || ny < 0 || ny >= 12) continue;
 
-        // Case libre OU occupée par un ennemi → coup valide
+        auto cible = plateau.getCase(nx, ny);
+        if (!cible) continue;
+
         if (!cible->estOccupee() || cible->getPiece()->getCouleur() != couleur) {
             coups.push_back(cible);
         }
@@ -41,6 +35,4 @@ std::vector<std::shared_ptr<Case>> Cavalier::getDeplacements(const Plateau& plat
     return coups;
 }
 
-std::string Cavalier::getType() const {
-    return "Cavalier";
-}
+std::string Cavalier::getType() const { return "Cavalier"; }

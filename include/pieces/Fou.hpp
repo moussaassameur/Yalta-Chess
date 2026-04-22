@@ -9,4 +9,7 @@ public:
     ~Fou() override = default;
 
     std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;
-    std::string getType() cons
+    std::string getType() const override;
+};
+
+#endif // FOU_HPP

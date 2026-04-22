@@ -18,12 +18,14 @@ public:
     void setADejaBouge(bool valeur);
 
 private:
-    // Méthodes utilitaires privées pour clarifier le code
-    // Renvoie le vecteur d'avancement du pion selon sa couleur
-    void getDirectionAvancement(int& dq, int& dr) const;
+    // Direction d'avancement (dx, dy) selon le sextant.
+    // Sextants pairs (0, 2, 4) avancent en +y ; impairs (1, 3, 5) en +x.
+    static void getDirectionAvancement(int sextant, int& dx, int& dy);
 
-    // Renvoie les 2 vecteurs de diagonale de capture selon sa couleur
-    void getDirectionsCaptures(int& dq1, int& dr1, int& dq2, int& dr2) const;
+    // Diagonales de capture, perpendiculaires a la direction d'avancement.
+    static void getDirectionsCaptures(int sextant,
+                                      int& dx1, int& dy1,
+                                      int& dx2, int& dy2);
 };
 
 #endif

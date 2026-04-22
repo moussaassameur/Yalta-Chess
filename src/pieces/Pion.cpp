@@ -6,28 +6,25 @@ Pion::Pion(Couleur couleur, std::shared_ptr<Case> position)
     : Piece(couleur, position), aDejaBouge(false) {
 }
 
-void Pion::getDirectionAvancement(int& dq, int& dr) const {
-    // Chaque couleur a sa propre direction d'avancement sur l'hexagone
-    if (couleur == Couleur::BLANC) {
-        dq = 0; dr = -1;
-    } else if (couleur == Couleur::NOIR) {
-        dq = -1; dr = +1;
-    } else { // ROUGE
-        dq = +1; dr = 0;
-    }
+void Pion::getDirectionAvancement(int sextant, int& dx, int& dy) {
+    // Convention :
+    //   sextants 0, 2, 4 : back rank sur une rangee (y=0/4/8) -> avance +y
+    //   sextants 1, 3, 5 : back rank sur une colonne (x=0/8/4) -> avance +x
+    if (sextant % 2 == 0) { dx = 0;  dy = +1; }
+    else                  { dx = +1; dy = 0;  }
 }
 
-void Pion::getDirectionsCaptures(int& dq1, int& dr1, int& dq2, int& dr2) const {
-    // Les 2 diagonales de capture, qui encadrent la direction d'avancement
-    if (couleur == Couleur::BLANC) {
-        dq1 = +1; dr1 = -1;
-        dq2 = -1; dr2 =  0;
-    } else if (couleur == Couleur::NOIR) {
-        dq1 =  0; dr1 = +1;
-        dq2 = -1; dr2 =  0;
-    } else { // ROUGE
-        dq1 = +1; dr1 = -1;
-        dq2 =  0; dr2 = +1;
+void Pion::getDirectionsCaptures(int sextant,
+                                 int& dx1, int& dy1,
+                                 int& dx2, int& dy2) {
+    if (sextant % 2 == 0) {
+        // Avance +y : captures en (-1, +1) et (+1, +1)
+        dx1 = -1; dy1 = +1;
+        dx2 = +1; dy2 = +1;
+    } else {
+        // Avance +x : captures en (+1, -1) et (+1, +1)
+        dx1 = +1; dy1 = -1;
+        dx2 = +1; dy2 = +1;
     }
 }
 
@@ -35,61 +32,54 @@ std::vector<std::shared_ptr<Case>> Pion::getDeplacements(const Plateau& plateau)
     std::vector<std::shared_ptr<Case>> coups;
     if (position == nullptr) return coups;
 
-    int q = position->getQ();
-    int r = position->getR();
+    int sextant = position->getSextant();
+    int x = position->getX();
+    int y = position->getY();
 
-    // ─── 1. AVANCEMENT (vers l'avant, sans capturer) ───
-    int dq, dr;
-    getDirectionAvancement(dq, dr);
+    auto getCaseGrille = [&](int cx, int cy) -> std::shared_ptr<Case> {
+        if (cx < 0 || cx >= 12 || cy < 0 || cy >= 12) return nullptr;
+        return plateau.getCase(cx, cy);
+    };
 
-    // 1 case en avant
-    auto caseDevant = plateau.getCase(q + dq, r + dr);
-    if (caseDevant != nullptr && !caseDevant->estOccupee()) {
-        coups.push_back(caseDevant);
+    // ─── 1. AVANCEMENT ───
+    int dx, dy;
+    getDirectionAvancement(sextant, dx, dy);
 
-        // 2 cases en avant — uniquement si le pion n'a jamais bougé
-        // ET si la case "1 devant" est aussi libre (déjà vérifié juste au-dessus)
+    auto devant = getCaseGrille(x + dx, y + dy);
+    if (devant && !devant->estOccupee()) {
+        coups.push_back(devant);
+
+        // 2 cases en avant depuis la position de depart
         if (!aDejaBouge) {
-            auto caseDeuxDevant = plateau.getCase(q + 2*dq, r + 2*dr);
-            if (caseDeuxDevant != nullptr && !caseDeuxDevant->estOccupee()) {
-                coups.push_back(caseDeuxDevant);
+            auto deuxDevant = getCaseGrille(x + 2*dx, y + 2*dy);
+            if (deuxDevant && !deuxDevant->estOccupee()) {
+                coups.push_back(deuxDevant);
             }
         }
     }
 
-    // ─── 2. CAPTURES (diagonales, uniquement si la case contient un ennemi) ───
-    int dq1, dr1, dq2, dr2;
-    getDirectionsCaptures(dq1, dr1, dq2, dr2);
+    // ─── 2. CAPTURES ───
+    int dx1, dy1, dx2, dy2;
+    getDirectionsCaptures(sextant, dx1, dy1, dx2, dy2);
 
-    // Première diagonale
-    auto diag1 = plateau.getCase(q + dq1, r + dr1);
-    if (diag1 != nullptr && diag1->estOccupee()
+    auto diag1 = getCaseGrille(x + dx1, y + dy1);
+    if (diag1 && diag1->estOccupee()
         && diag1->getPiece()->getCouleur() != couleur) {
         coups.push_back(diag1);
     }
 
-    // Deuxième diagonale
-    auto diag2 = plateau.getCase(q + dq2, r + dr2);
-    if (diag2 != nullptr && diag2->estOccupee()
+    auto diag2 = getCaseGrille(x + dx2, y + dy2);
+    if (diag2 && diag2->estOccupee()
         && diag2->getPiece()->getCouleur() != couleur) {
         coups.push_back(diag2);
     }
 
-    // Note : la prise en passant et la promotion ne sont PAS gérées ici.
-    // Elles seront ajoutées dans la classe Jeu, qui a une vue d'ensemble
-    // (historique du dernier coup, condition de promotion, etc.)
+    // Note : prise en passant et promotion non gerees ici.
 
     return coups;
 }
 
-std::string Pion::getType() const {
-    return "Pion";
-}
+std::string Pion::getType() const { return "Pion"; }
 
-bool Pion::getADejaBouge() const {
-    return aDejaBouge;
-}
-
-void Pion::setADejaBouge(bool valeur) {
-    aDejaBouge = valeur;
-}
+bool Pion::getADejaBouge() const { return aDejaBouge; }
+void Pion::setADejaBouge(bool valeur) { aDejaBouge = valeur; }
