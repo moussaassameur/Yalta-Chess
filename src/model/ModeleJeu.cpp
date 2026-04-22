@@ -63,7 +63,23 @@ void ModeleJeu::tourSuivant() {
 }
 
 EtatPartie ModeleJeu::verifierEtat() {
-    // TODO : implémenter la détection échec/mat/pat
+    if (!joueurActuel) return EtatPartie::EN_COURS;
+
+    Couleur couleur = joueurActuel->getCouleur();
+    bool enEchec   = plateau->estEnEchec(couleur);
+    bool aDesCoups = plateau->aDesCoupsLegaux(couleur);
+
+    if (enEchec && !aDesCoups) {
+        // le joueur est mat, on l elimine
+        joueurActuel->eliminer();
+        return EtatPartie::ECHEC_ET_MAT;
+    }
+    if (!enEchec && !aDesCoups) {
+        return EtatPartie::PAT;
+    }
+    if (enEchec) {
+        return EtatPartie::ECHEC;
+    }
     return EtatPartie::EN_COURS;
 }
 

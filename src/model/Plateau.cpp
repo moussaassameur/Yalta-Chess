@@ -1,6 +1,7 @@
 #include "model/Plateau.hpp"
 #include "model/Case.hpp"
 #include "coup/Coup.hpp"
+#include "coup/CoupSimple.hpp"
 #include "pieces/Piece.hpp"
 #include "pieces/Roi.hpp"
 #include "pieces/Reine.hpp"
@@ -112,14 +113,81 @@ void Plateau::initialiserPieces() {
     }
 }
 
-bool Plateau::estEnEchec(Couleur couleurJoueur) const {
-    // on va implementer ca dans l etape verification echec/mat/pat
-    (void)couleurJoueur;
-    return false;
-}
-
 void Plateau::deplacerPiece(Coup& coup) {
     coup.executer(*this);
 }
 
 void Plateau::placerRangee(Couleur /*couleur*/) {}
+
+// retourne toutes les pieces vivantes d une couleur donnee
+std::vector<std::shared_ptr<Piece>> Plateau::getPiecesDeCouleur(Couleur couleur) const {
+    std::vector<std::shared_ptr<Piece>> res;
+    for (const auto& p : cases) {
+        auto piece = p.second->getPiece();
+        if (piece && piece->estVivante() && piece->getCouleur() == couleur)
+            res.push_back(piece);
+    }
+    return res;
+}
+
+// retourne la case ou se trouve le roi de la couleur donnee
+std::shared_ptr<Case> Plateau::getCaseRoi(Couleur couleur) const {
+    for (const auto& p : cases) {
+        auto piece = p.second->getPiece();
+        if (piece && piece->estVivante()
+            && piece->getCouleur() == couleur
+            && piece->getType() == "Roi")
+            return p.second;
+    }
+    return nullptr;
+}
+
+// verifie si une case est menacee par n importe quelle piece d une couleur donnee
+bool Plateau::estMenacee(std::shared_ptr<Case> cible, Couleur attaquant) const {
+    if (!cible) return false;
+    auto piecesAttaquantes = getPiecesDeCouleur(attaquant);
+    for (const auto& piece : piecesAttaquantes) {
+        auto casesPossibles = piece->getDeplacements(*this);
+        for (const auto& c : casesPossibles) {
+            if (c == cible) return true;
+        }
+    }
+    return false;
+}
+
+// verifie si le roi de la couleur donnee est en echec
+// en yalta le roi peut etre menace par n importe lequel des 2 autres joueurs
+bool Plateau::estEnEchec(Couleur couleurJoueur) const {
+    auto caseRoi = getCaseRoi(couleurJoueur);
+    if (!caseRoi) return false;
+
+    // on verifie si les 2 autres couleurs menacent le roi
+    for (Couleur adversaire : {Couleur::BLANC, Couleur::NOIR, Couleur::ROUGE}) {
+        if (adversaire == couleurJoueur) continue;
+        if (estMenacee(caseRoi, adversaire)) return true;
+    }
+    return false;
+}
+
+// verifie si le joueur a au moins un coup legal
+// un coup est legal si apres l avoir joue le roi n est plus en echec
+bool Plateau::aDesCoupsLegaux(Couleur couleurJoueur) {
+    auto pieces = getPiecesDeCouleur(couleurJoueur);
+    for (const auto& piece : pieces) {
+        auto casesAccessibles = piece->getDeplacements(*this);
+        for (const auto& caseArrivee : casesAccessibles) {
+            // on simule le coup
+            auto caseDepart = piece->getPosition();
+            auto coup = std::make_shared<CoupSimple>(caseDepart, caseArrivee, piece);
+            if (!coup->estValide(*this)) continue;
+
+            coup->executer(*this);
+            bool encoreEnEchec = estEnEchec(couleurJoueur);
+            coup->annuler(*this);
+
+            // si ce coup sort le roi de l echec c est un coup legal
+            if (!encoreEnEchec) return true;
+        }
+    }
+    return false;
+}
