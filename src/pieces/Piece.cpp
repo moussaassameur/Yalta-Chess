@@ -1,5 +1,7 @@
 #include "pieces/Piece.hpp"
 #include "model/Case.hpp"
+#include "model/Plateau.hpp"
+#include "coup/CoupSimple.hpp"
 
 Piece::Piece(Couleur couleur)
     : couleur(couleur),
@@ -25,4 +27,19 @@ void Piece::capturer() {
 void Piece::ressusciter() {
     vivante = true;
     // La position sera reaffectee par Coup::annuler.
+}
+
+std::vector<std::shared_ptr<Case>>
+Piece::getCoupsLegaux(Plateau& plateau) const {
+    auto candidats = getDeplacements(plateau);
+    std::vector<std::shared_ptr<Case>> legaux;
+
+    for (const auto& dest : candidats) {
+        CoupSimple sim(position, dest);
+        sim.executer(plateau);
+        bool safe = !plateau.estEnEchec(couleur);
+        sim.annuler(plateau);
+        if (safe) legaux.push_back(dest);
+    }
+    return legaux;
 }

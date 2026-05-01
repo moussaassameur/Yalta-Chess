@@ -2,6 +2,7 @@
 #define MODELE_JEU_HPP
 
 #include "model/EtatPartie.hpp"
+#include "model/Couleur.hpp"
 #include <memory>
 #include <vector>
 
@@ -75,6 +76,7 @@ public:
     std::shared_ptr<Joueur>     getJoueurActuel() const;
     std::shared_ptr<Plateau>    getPlateau()      const;
     std::shared_ptr<Historique> getHistorique()   const;
+    const std::vector<std::shared_ptr<Joueur>>& getJoueurs() const;
     /// @}
 
 private:
@@ -89,6 +91,13 @@ private:
 
     /// @brief Diffuse une notification a tous les observateurs.
     void notifier();
+
+    /// @brief Calcule l'etat du joueur actuel (echec/mat/pat) et elimine
+    ///        si necessaire. Appele apres chaque coup joue.
+    void calculerEtat();
+
+    /// @brief Retire toutes les pieces d'une couleur du plateau.
+    void supprimerPieces(Couleur c);
 };
 
 #endif // MODELE_JEU_HPP

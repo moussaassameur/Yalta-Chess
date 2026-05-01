@@ -74,6 +74,14 @@ public:
     virtual std::vector<std::shared_ptr<Case>>
     getDeplacements(const Plateau& plateau) const = 0;
 
+    /**
+     * @brief Filtre getDeplacements() en eliminant les coups qui laissent
+     *        le roi de la meme couleur en echec (coups illegaux).
+     * @param plateau Plateau courant (modifie temporairement puis restaure).
+     */
+    std::vector<std::shared_ptr<Case>>
+    getCoupsLegaux(Plateau& plateau) const;
+
 protected:
     Couleur               couleur;
     std::shared_ptr<Case> position;

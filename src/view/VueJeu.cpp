@@ -181,13 +181,21 @@ void VueJeu::mettreAJour(const ModeleJeu& m) {
 
     QString txt;
     switch (m.getEtat()) {
-        case EtatPartie::EN_COURS:     txt = "Etat : EN COURS";     break;
-        case EtatPartie::ECHEC:        txt = "Etat : ECHEC !";      break;
-        case EtatPartie::ECHEC_ET_MAT: txt = "Etat : ECHEC ET MAT"; break;
-        case EtatPartie::PAT:          txt = "Etat : PAT";          break;
-        case EtatPartie::NULLE:        txt = "Etat : NULLE";        break;
+        case EtatPartie::EN_COURS:     txt = "EN COURS";     break;
+        case EtatPartie::ECHEC:        txt = "ECHEC !";      break;
+        case EtatPartie::ECHEC_ET_MAT: txt = "ECHEC ET MAT"; break;
+        case EtatPartie::PAT:          txt = "PAT";          break;
+        case EtatPartie::NULLE:        txt = "NULLE";        break;
     }
-    labelEtat->setText(txt);
+
+    // Affiche les joueurs elimines dans le label d'etat.
+    QString elimines;
+    for (const auto& j : m.getJoueurs()) {
+        if (j->getEstElimine())
+            elimines += QString("  [%1 elimine]").arg(
+                QString::fromStdString(j->getNom()));
+    }
+    labelEtat->setText("Etat : " + txt + elimines);
 
     caseSelectionnee = nullptr;
     coupsPossibles.clear();

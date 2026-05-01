@@ -58,6 +58,12 @@ public:
     std::vector<std::shared_ptr<class Piece>>
     getPiecesDeCouleur(Couleur couleur) const;
 
+    /// @return Case occupee par le Roi de la couleur c, ou nullptr.
+    std::shared_ptr<Case> trouverRoi(Couleur c) const;
+
+    /// @return true si le roi de la couleur c est attaque par une piece adverse.
+    bool estEnEchec(Couleur c) const;
+
     /// @name Topologie Yalta -- voisinage avec bending
     ///
     /// Les pieces glissantes (Tour, Fou, Reine) avancent d'une case a la

@@ -39,7 +39,7 @@ void ControleurJeu::gererClic(int x, int y) {
         if (caseClic->estOccupee()
             && caseClic->getPiece()->getCouleur() == couleurCourant) {
             caseSelectionnee = caseClic;
-            auto coups = caseClic->getPiece()->getDeplacements(*plateau);
+            auto coups = caseClic->getPiece()->getCoupsLegaux(*plateau);
             vue->surligner(caseClic, coups);
         }
         return;
@@ -56,14 +56,14 @@ void ControleurJeu::gererClic(int x, int y) {
     if (caseClic->estOccupee()
         && caseClic->getPiece()->getCouleur() == couleurCourant) {
         caseSelectionnee = caseClic;
-        auto coups = caseClic->getPiece()->getDeplacements(*plateau);
+        auto coups = caseClic->getPiece()->getCoupsLegaux(*plateau);
         vue->surligner(caseClic, coups);
         return;
     }
 
     // ─── Clic ailleurs : tentative de coup ──────────────────────────────
     auto piece = caseSelectionnee->getPiece();
-    auto coups = piece->getDeplacements(*plateau);
+    auto coups = piece->getCoupsLegaux(*plateau);
 
     bool destinationLegale = std::any_of(coups.begin(), coups.end(),
         [&](const std::shared_ptr<Case>& c) { return c == caseClic; });
@@ -71,8 +71,7 @@ void ControleurJeu::gererClic(int x, int y) {
     if (destinationLegale) {
         auto coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
         modele->jouerCoup(coup);
-        modele->tourSuivant();
-        // mettreAJour() cote vue efface le surlignage.
+        // tourSuivant() et calculerEtat() sont appeles dans jouerCoup.
     } else {
         vue->effacerSurlignage();
     }

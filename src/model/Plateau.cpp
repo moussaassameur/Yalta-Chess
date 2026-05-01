@@ -314,6 +314,29 @@ Plateau::voisinDiagonal(std::shared_ptr<Case> depart, int& dx, int& dy) const {
     return nullptr;
 }
 
+std::shared_ptr<Case> Plateau::trouverRoi(Couleur c) const {
+    for (const auto& kv : cases) {
+        auto p = kv.second->getPiece();
+        if (p && p->estVivante() && p->getCouleur() == c && p->getType() == "Roi")
+            return kv.second;
+    }
+    return nullptr;
+}
+
+bool Plateau::estEnEchec(Couleur c) const {
+    auto caseRoi = trouverRoi(c);
+    if (!caseRoi) return false;
+
+    for (const auto& kv : cases) {
+        auto p = kv.second->getPiece();
+        if (!p || !p->estVivante() || p->getCouleur() == c) continue;
+        for (const auto& dest : p->getDeplacements(*this)) {
+            if (dest == caseRoi) return true;
+        }
+    }
+    return false;
+}
+
 void Plateau::creerCases() {
     // Description des 6 blocs valides : pour chaque sextant, son rectangle
     // dans la grille 12x12 et son numero. Doit rester synchronise avec

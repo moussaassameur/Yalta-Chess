@@ -4,6 +4,7 @@
 #include "coup/Coup.hpp"
 #include "joueur/JoueurHumain.hpp"
 #include "observer/Observateur.hpp"
+#include "pieces/Piece.hpp"
 
 #include <algorithm>
 
@@ -42,11 +43,53 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     coup->executer(*plateau);
     historique->ajouter(coup);
 
-    // En Phase 5, on ne calcule pas encore les etats ECHEC/MAT.
-    // Sera implemente en Phase 6 a partir des pieces sur le plateau.
-    etat = EtatPartie::EN_COURS;
+    tourSuivant();
+    calculerEtat();
 
     notifier();
+}
+
+void ModeleJeu::calculerEtat() {
+    // Verifie le joueur actuel : echec, mat, pat. Si elimine, passe au suivant.
+    while (joueurActuel && !joueurActuel->getEstElimine()) {
+        const Couleur c = joueurActuel->getCouleur();
+        const bool enEchec = plateau->estEnEchec(c);
+
+        // Cherche au moins un coup legal.
+        bool aUnCoupLegal = false;
+        for (const auto& p : plateau->getPiecesDeCouleur(c)) {
+            if (!p->getCoupsLegaux(*plateau).empty()) {
+                aUnCoupLegal = true;
+                break;
+            }
+        }
+
+        if (!aUnCoupLegal) {
+            etat = enEchec ? EtatPartie::ECHEC_ET_MAT : EtatPartie::PAT;
+            joueurActuel->eliminer();
+            supprimerPieces(c);
+
+            // Compte les joueurs encore actifs.
+            int nActifs = 0;
+            for (const auto& j : joueurs)
+                if (!j->getEstElimine()) ++nActifs;
+            if (nActifs <= 1) return; // fin de partie
+
+            tourSuivant();
+            // Recommence la boucle pour verifier le prochain joueur.
+        } else {
+            etat = enEchec ? EtatPartie::ECHEC : EtatPartie::EN_COURS;
+            return;
+        }
+    }
+}
+
+void ModeleJeu::supprimerPieces(Couleur c) {
+    for (const auto& p : plateau->getPiecesDeCouleur(c)) {
+        auto pos = p->getPosition();
+        if (pos) pos->retirerPiece();
+        p->capturer();
+    }
 }
 
 void ModeleJeu::tourSuivant() {
@@ -105,3 +148,4 @@ EtatPartie                  ModeleJeu::getEtat()         const { return etat; }
 std::shared_ptr<Joueur>     ModeleJeu::getJoueurActuel() const { return joueurActuel; }
 std::shared_ptr<Plateau>    ModeleJeu::getPlateau()      const { return plateau; }
 std::shared_ptr<Historique> ModeleJeu::getHistorique()   const { return historique; }
+const std::vector<std::shared_ptr<Joueur>>& ModeleJeu::getJoueurs() const { return joueurs; }
