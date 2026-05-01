@@ -4,8 +4,16 @@
 #include "model/Case.hpp"
 #include "view/VueJeu.hpp"
 #include "coup/CoupSimple.hpp"
+#include "coup/CoupPromotion.hpp"
 #include "pieces/Piece.hpp"
+#include "pieces/Pion.hpp"
 #include "joueur/Joueur.hpp"
+
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
 
 #include <algorithm>
 
@@ -69,12 +77,49 @@ void ControleurJeu::gererClic(int x, int y) {
         [&](const std::shared_ptr<Case>& c) { return c == caseClic; });
 
     if (destinationLegale) {
-        auto coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
+        std::shared_ptr<Coup> coup;
+        // Promotion : pion qui atteint le back rank ennemi.
+        auto pion = std::dynamic_pointer_cast<Pion>(piece);
+        if (pion && Pion::estCaseDePromotion(caseClic, pion->getCouleur())) {
+            std::string type = demanderPromotion();
+            coup = std::make_shared<CoupPromotion>(caseSelectionnee, caseClic, type);
+        } else {
+            coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
+        }
         modele->jouerCoup(coup);
-        // tourSuivant() et calculerEtat() sont appeles dans jouerCoup.
     } else {
         vue->effacerSurlignage();
     }
 
     caseSelectionnee = nullptr;
+}
+
+std::string ControleurJeu::demanderPromotion() {
+    QDialog dialog(vue.get());
+    dialog.setWindowTitle("Promotion");
+    dialog.setModal(true);
+
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(new QLabel("Choisissez la piece de promotion :"));
+
+    QHBoxLayout* boutons = new QHBoxLayout();
+    std::string choix = "Reine";
+
+    auto ajouterBouton = [&](const QString& label, const std::string& type) {
+        auto* btn = new QPushButton(label, &dialog);
+        boutons->addWidget(btn);
+        QObject::connect(btn, &QPushButton::clicked, [&, type]() {
+            choix = type;
+            dialog.accept();
+        });
+    };
+
+    ajouterBouton("♛ Reine",    "Reine");
+    ajouterBouton("♜ Tour",     "Tour");
+    ajouterBouton("♝ Fou",      "Fou");
+    ajouterBouton("♞ Cavalier", "Cavalier");
+
+    layout->addLayout(boutons);
+    dialog.exec();
+    return choix;
 }

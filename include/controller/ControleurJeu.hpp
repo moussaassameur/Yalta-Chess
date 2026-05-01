@@ -48,6 +48,9 @@ private:
 
     /// Case actuellement selectionnee (null si aucune).
     std::shared_ptr<Case> caseSelectionnee;
+
+    /// Affiche un dialogue modal et retourne le type de piece choisi.
+    std::string demanderPromotion();
 };
 
 #endif // CONTROLEUR_JEU_HPP

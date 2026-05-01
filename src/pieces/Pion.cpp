@@ -142,3 +142,12 @@ Pion::getDeplacements(const Plateau& plateau) const {
 
     return coups;
 }
+
+bool Pion::estCaseDePromotion(const std::shared_ptr<Case>& dest, Couleur couleur) {
+    if (!dest) return false;
+    const int sext   = dest->getSextant();
+    if (tiersPropre(couleur, sext)) return false;
+    const int xLocal = dest->getX() - OFFSET_X[sext];
+    const int yLocal = dest->getY() - OFFSET_Y[sext];
+    return (sext % 2 == 1) ? (xLocal == 0) : (yLocal == 0);
+}

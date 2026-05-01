@@ -17,6 +17,7 @@ set(SOURCES_MOTEUR
     # Phase 2 (Pattern Command)
     src/model/Historique.cpp
     src/coup/CoupSimple.cpp
+    src/coup/CoupPromotion.cpp
     # Phase 3 (Pieces)
     src/pieces/Piece.cpp
     src/pieces/Pion.cpp
@@ -39,6 +40,7 @@ set(HEADERS_MOTEUR
     include/model/Historique.hpp
     include/coup/Coup.hpp
     include/coup/CoupSimple.hpp
+    include/coup/CoupPromotion.hpp
     include/pieces/Piece.hpp
     include/pieces/Pion.hpp
     include/pieces/Tour.hpp

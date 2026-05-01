@@ -45,7 +45,6 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
 
     tourSuivant();
     calculerEtat();
-
     notifier();
 }
 

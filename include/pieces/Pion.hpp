@@ -44,6 +44,11 @@ public:
     std::vector<std::shared_ptr<Case>>
     getDeplacements(const Plateau& plateau) const override;
 
+    /// @return true si la case 'dest' est un back rank ennemi pour un pion
+    ///         de la couleur donnee (= case de promotion).
+    static bool estCaseDePromotion(const std::shared_ptr<Case>& dest,
+                                   Couleur couleur);
+
 private:
     /**
      * @brief Calcule la direction d'avancement (dx, dy) en fonction du
