@@ -2,40 +2,76 @@
 #include "model/Case.hpp"
 #include "model/Plateau.hpp"
 
-Roi::Roi(Couleur couleur, std::shared_ptr<Case> position)
-    : Piece(couleur, position), aDejaBouge(false) {
+/**
+ * @file Roi.cpp
+ * @brief Implementation des deplacements du Roi (1 case + regle Yalta centre).
+ */
+
+static const int OFFSET_X[6] = { 0, 0, 8, 8, 4, 4 };
+static const int OFFSET_Y[6] = { 0, 4, 4, 8, 8, 0 };
+
+Roi::Roi(Couleur couleur) : Piece(couleur) {}
+
+std::string Roi::getType() const { return "Roi"; }
+
+/// Indique si la case est la (3, 3) de son sextant.
+static bool estCentreSextant(const std::shared_ptr<Case>& c) {
+    if (!c) return false;
+    const int s = c->getSextant();
+    return (c->getX() - OFFSET_X[s] == 3
+         && c->getY() - OFFSET_Y[s] == 3);
 }
 
-// Roi : 1 case dans les 8 directions, sur la grille 12x12.
-std::vector<std::shared_ptr<Case>> Roi::getDeplacements(const Plateau& plateau) const {
+std::vector<std::shared_ptr<Case>>
+Roi::getDeplacements(const Plateau& plateau) const {
     std::vector<std::shared_ptr<Case>> coups;
-    if (position == nullptr) return coups;
+    if (!position) return coups;
 
-    const int dirs[8][2] = {
+    static const int dirs[8][2] = {
         {+1,  0}, {-1,  0}, { 0, +1}, { 0, -1},
         {+1, +1}, {+1, -1}, {-1, +1}, {-1, -1}
     };
 
-    int x = position->getX();
-    int y = position->getY();
+    const bool roiSurCentre = estCentreSextant(position);
 
+    // Helper : ajoute une case a la liste si :
+    //   - elle existe,
+    //   - elle n'est pas occupee par un ami,
+    //   - la regle Yalta du centre n'est pas violee.
+    auto ajouterSiLegal = [&](const std::shared_ptr<Case>& cible) {
+        if (!cible) return;
+        if (cible->estOccupee()
+            && cible->getPiece()->getCouleur() == couleur) return;
+
+        // Regle Yalta : si on part de (3, 3) et qu'on arrive sur une
+        // autre (3, 3) de couleur damier opposee, c'est interdit.
+        if (roiSurCentre
+            && estCentreSextant(cible)
+            && cible->getCouleurDamier() != position->getCouleurDamier()) {
+            return;
+        }
+
+        coups.push_back(cible);
+    };
+
+    // ─── 1 case dans les 8 directions ──────────────────────────────────
     for (const auto& d : dirs) {
-        int nx = x + d[0];
-        int ny = y + d[1];
-        if (nx < 0 || nx >= 12 || ny < 0 || ny >= 12) continue;
+        auto cible = plateau.voisin(position, d[0], d[1]);
+        ajouterSiLegal(cible);
+    }
 
-        auto cible = plateau.getCase(nx, ny);
-        if (!cible) continue;
-
-        if (!cible->estOccupee() || cible->getPiece()->getCouleur() != couleur) {
-            coups.push_back(cible);
+    // ─── Center-cross same-color depuis (3, 3) ─────────────────────────
+    // Les destinations (i+2)%6 et (i+4)%6 ont la meme couleur damier
+    // que la source -- la regle Yalta ne s'oppose pas.
+    if (roiSurCentre) {
+        const int sext = position->getSextant();
+        for (int delta : {2, 4}) {
+            const int sDest = (sext + delta) % 6;
+            auto cible = plateau.getCase(OFFSET_X[sDest] + 3,
+                                         OFFSET_Y[sDest] + 3);
+            ajouterSiLegal(cible);
         }
     }
 
     return coups;
 }
-
-std::string Roi::getType() const { return "Roi"; }
-
-bool Roi::getADejaBouge() const { return aDejaBouge; }
-void Roi::setADejaBouge(bool valeur) { aDejaBouge = valeur; }

@@ -3,29 +3,55 @@
 
 #include "pieces/Piece.hpp"
 
+/**
+ * @file Pion.hpp
+ * @brief Pion du jeu Yalta.
+ *
+ * Grace a la notation globale (a1-l12), chaque pion reste sur la meme
+ * colonne (file) tout au long de son parcours. Un pion 'a' traverse
+ * a1→a2→a3→a4 (sextant S0) puis a5→a6→a7→a8 (sextant S1).
+ *
+ * Avancement (rook direction) :
+ *   - 1 case orthogonale dans le sens qui eloigne le pion de son
+ *     back rank. Le bending via voisinAvecDir gere automatiquement
+ *     le passage d'un sextant a l'autre.
+ *   - Bond initial de 2 cases si aDejaBouge == false et les 2 cases
+ *     devant sont libres.
+ *
+ * Captures (bishop direction) :
+ *   - 1 case diagonale dans l'une des 2 directions "avant" (avant =
+ *     composante forward + composante perpendiculaire).
+ *   - Via Plateau::voisinDiagonal qui applique la reflexion correcte
+ *     aux bords des sextants.
+ *   - Center-cross : depuis l'apex (3,3) du TIERS PROPRE, si la
+ *     diagonale traverse simultanement les deux bords, le pion a deux
+ *     options de capture comme le fou (apexes same-color en face).
+ *
+ * NB : aDejaBouge est gere par Piece et mis a jour par CoupSimple.
+ */
 class Pion : public Piece {
-private:
-    bool aDejaBouge;  // false au départ, true après le premier coup
-
 public:
-    Pion(Couleur couleur, std::shared_ptr<Case> position);
+    /**
+     * @brief Construit un pion d'une couleur donnee.
+     * @param couleur Couleur du joueur proprietaire.
+     */
+    Pion(Couleur couleur);
+
     ~Pion() override = default;
 
-    std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;
     std::string getType() const override;
 
-    bool getADejaBouge() const;
-    void setADejaBouge(bool valeur);
+    std::vector<std::shared_ptr<Case>>
+    getDeplacements(const Plateau& plateau) const override;
 
 private:
-    // Direction d'avancement (dx, dy) selon le sextant.
-    // Sextants pairs (0, 2, 4) avancent en +y ; impairs (1, 3, 5) en +x.
-    static void getDirectionAvancement(int sextant, int& dx, int& dy);
-
-    // Diagonales de capture, perpendiculaires a la direction d'avancement.
-    static void getDirectionsCaptures(int sextant,
-                                      int& dx1, int& dy1,
-                                      int& dx2, int& dy2);
+    /**
+     * @brief Calcule la direction d'avancement (dx, dy) en fonction du
+     *        sextant courant et du fait qu'il est dans le tiers propre.
+     * @param[out] dx Composante x (-1, 0 ou +1).
+     * @param[out] dy Composante y (-1, 0 ou +1).
+     */
+    void calculerDirection(int& dx, int& dy) const;
 };
 
-#endif
+#endif // PION_HPP

@@ -3,19 +3,29 @@
 
 #include "pieces/Piece.hpp"
 
+/**
+ * @file Tour.hpp
+ * @brief Tour du jeu Yalta -- glissade orthogonale.
+ *
+ * La Tour glisse dans les 4 directions cardinales (xLocal+/-, yLocal+/-)
+ * et utilise la topologie de bending de Plateau aux frontieres internes.
+ * Elle s'arrete sur :
+ *   - un bord exterieur du plateau (case nullptr renvoyee par voisin),
+ *   - une piece amie (la case n'est pas atteignable),
+ *   - une piece ennemie (case ajoutee comme capture, puis on s'arrete).
+ *
+ * Le drapeau aDejaBouge (herite de Piece) servira pour le roque en
+ * Phase 7.
+ */
 class Tour : public Piece {
-private:
-    bool aDejaBouge;  // pour le roque
-
 public:
-    Tour(Couleur couleur, std::shared_ptr<Case> position);
+    Tour(Couleur couleur);
     ~Tour() override = default;
 
-    std::vector<std::shared_ptr<Case>> getDeplacements(const Plateau& plateau) const override;
     std::string getType() const override;
 
-    bool getADejaBouge() const;
-    void setADejaBouge(bool valeur);
+    std::vector<std::shared_ptr<Case>>
+    getDeplacements(const Plateau& plateau) const override;
 };
 
-#endif
+#endif // TOUR_HPP

@@ -1,23 +1,33 @@
-#ifndef CONTROLEURJEU_HPP
-#define CONTROLEURJEU_HPP
+#ifndef CONTROLEUR_JEU_HPP
+#define CONTROLEUR_JEU_HPP
 
-#include <memory>
 #include <QObject>
+#include <memory>
 
 class ModeleJeu;
 class VueJeu;
 class Case;
-class Coup;
 
-// Controleur MVC — fait le lien entre les clics Qt et le modele
+/**
+ * @file ControleurJeu.hpp
+ * @brief Controleur du MVC -- relie les clics utilisateurs au modele.
+ *
+ * Ecoute le signal Qt VueJeu::caseCliquee. Maintient la "case selectionnee"
+ * et applique la machine d'etat suivante :
+ *   - 1er clic : si la case contient une piece du joueur courant,
+ *                la selectionne et demande a la Vue de surligner ses
+ *                coups possibles.
+ *   - clic suivant :
+ *       * meme case   -> deselection,
+ *       * autre piece du joueur courant -> change de selection,
+ *       * case d'un coup possible -> joue le coup via ModeleJeu.
+ *
+ * La gestion des coups speciaux (roque, promotion, prise en passant)
+ * sera ajoutee en Phase 7. Pour l'instant, tous les coups sont des
+ * CoupSimple.
+ */
 class ControleurJeu : public QObject {
     Q_OBJECT
-
-private:
-    std::shared_ptr<ModeleJeu> modele;
-    std::shared_ptr<VueJeu>    vue;
-
-    std::shared_ptr<Case> caseSelectionnee; // la case cliquee en premier
 
 public:
     ControleurJeu(std::shared_ptr<ModeleJeu> modele,
@@ -25,16 +35,19 @@ public:
                   QObject* parent = nullptr);
     ~ControleurJeu() override = default;
 
+    /// @brief Demarre la partie : initialise le modele et affiche la vue.
     void initialiser();
-    void gererTour();
 
-public slots:
-    // appele quand le joueur clique sur une case du plateau
-    void gererClic(int q, int r);
+private slots:
+    /// @brief Slot appele a chaque clic sur une case du plateau.
+    void gererClic(int x, int y);
 
 private:
-    std::shared_ptr<Coup> construireCoup(std::shared_ptr<Case> depart,
-                                         std::shared_ptr<Case> arrivee);
+    std::shared_ptr<ModeleJeu> modele;
+    std::shared_ptr<VueJeu>    vue;
+
+    /// Case actuellement selectionnee (null si aucune).
+    std::shared_ptr<Case> caseSelectionnee;
 };
 
-#endif // CONTROLEURJEU_HPP
+#endif // CONTROLEUR_JEU_HPP

@@ -7,12 +7,15 @@
 #include "pieces/Piece.hpp"
 #include "joueur/Joueur.hpp"
 
+#include <algorithm>
+
 ControleurJeu::ControleurJeu(std::shared_ptr<ModeleJeu> modele,
                              std::shared_ptr<VueJeu>    vue,
                              QObject* parent)
-    : QObject(parent), modele(modele), vue(vue),
+    : QObject(parent),
+      modele(modele),
+      vue(vue),
       caseSelectionnee(nullptr) {
-    // branchement du signal clic vue -> slot controleur
     QObject::connect(vue.get(), &VueJeu::caseCliquee,
                      this,      &ControleurJeu::gererClic);
 }
@@ -22,66 +25,57 @@ void ControleurJeu::initialiser() {
     vue->afficher();
 }
 
-void ControleurJeu::gererClic(int q, int r) {
+void ControleurJeu::gererClic(int x, int y) {
     auto plateau  = modele->getPlateau();
-    auto caseClic = plateau->getCase(q, r);
+    auto caseClic = plateau->getCase(x, y);
     if (!caseClic) return;
 
-    auto couleurJoueur = modele->getJoueurActuel()->getCouleur();
+    auto joueur = modele->getJoueurActuel();
+    if (!joueur) return;
+    const Couleur couleurCourant = joueur->getCouleur();
 
-    // premier clic : on selectionne une piece du joueur actuel
+    // ─── 1er clic : selection d'une piece du joueur courant ─────────────
     if (!caseSelectionnee) {
-        if (caseClic->estOccupee()) {
-            auto piece = caseClic->getPiece();
-            if (piece->getCouleur() == couleurJoueur) {
-                caseSelectionnee = caseClic;
-                vue->surligner(caseClic, piece->getDeplacements(*plateau));
-            }
+        if (caseClic->estOccupee()
+            && caseClic->getPiece()->getCouleur() == couleurCourant) {
+            caseSelectionnee = caseClic;
+            auto coups = caseClic->getPiece()->getDeplacements(*plateau);
+            vue->surligner(caseClic, coups);
         }
         return;
     }
 
-    // reclic sur la meme case : on annule la selection
+    // ─── Reclic sur la meme case : deselection ──────────────────────────
     if (caseClic == caseSelectionnee) {
         caseSelectionnee = nullptr;
         vue->effacerSurlignage();
         return;
     }
 
-    // clic sur une autre piece a soi : on change de selection
-    if (caseClic->estOccupee() &&
-        caseClic->getPiece()->getCouleur() == couleurJoueur) {
+    // ─── Clic sur une autre piece amie : change de selection ────────────
+    if (caseClic->estOccupee()
+        && caseClic->getPiece()->getCouleur() == couleurCourant) {
         caseSelectionnee = caseClic;
-        vue->surligner(caseClic, caseClic->getPiece()->getDeplacements(*plateau));
+        auto coups = caseClic->getPiece()->getDeplacements(*plateau);
+        vue->surligner(caseClic, coups);
         return;
     }
 
-    // sinon : tentative de coup
-    auto coup = construireCoup(caseSelectionnee, caseClic);
-    caseSelectionnee = nullptr;
+    // ─── Clic ailleurs : tentative de coup ──────────────────────────────
+    auto piece = caseSelectionnee->getPiece();
+    auto coups = piece->getDeplacements(*plateau);
 
-    if (coup && coup->estValide(*plateau)) {
+    bool destinationLegale = std::any_of(coups.begin(), coups.end(),
+        [&](const std::shared_ptr<Case>& c) { return c == caseClic; });
+
+    if (destinationLegale) {
+        auto coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
         modele->jouerCoup(coup);
         modele->tourSuivant();
-        // mettreAJour() cote vue efface deja le surlignage
+        // mettreAJour() cote vue efface le surlignage.
     } else {
         vue->effacerSurlignage();
     }
-}
 
-void ControleurJeu::gererTour() {
-    // appele automatiquement apres chaque coup
-    // si c est le tour de l IA on lance le calcul
-    // TODO : detecter JoueurIA et appeler jouerTour()
-}
-
-std::shared_ptr<Coup> ControleurJeu::construireCoup(std::shared_ptr<Case> depart,
-                                                     std::shared_ptr<Case> arrivee) {
-    if (!depart || !arrivee) return nullptr;
-    auto piece = depart->getPiece();
-    if (!piece) return nullptr;
-
-    // pour l instant on cree toujours un CoupSimple
-    // les coups speciaux (roque, promotion, prise en passant) seront ajoutes plus tard
-    return std::make_shared<CoupSimple>(depart, arrivee, piece);
+    caseSelectionnee = nullptr;
 }

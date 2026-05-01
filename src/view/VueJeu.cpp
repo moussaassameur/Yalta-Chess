@@ -3,7 +3,6 @@
 #include "model/Plateau.hpp"
 #include "model/Case.hpp"
 #include "model/EtatPartie.hpp"
-#include "model/Couleur.hpp"
 #include "pieces/Piece.hpp"
 #include "joueur/Joueur.hpp"
 
@@ -15,7 +14,6 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QWidget>
-#include <QMessageBox>
 #include <QPolygonF>
 #include <QPointF>
 #include <QPen>
@@ -23,63 +21,57 @@
 #include <QFont>
 #include <QMouseEvent>
 #include <QEvent>
-#include <cmath>
+#include <QPainter>
+#include <QFrame>
+
 #include <array>
+#include <cmath>
 
-// ─── Geometrie du hexagone Yalta ───
-//
-//      v1---v2          ,.b.,
-//     /      \        a/     \c
-//   v6   o   v3   o = origine, a..f = midpoints des aretes
-//     \      /        f\     /d
-//      v5---v4          `.e.´
-//
-// "TAILLE" = circumradius du hexagone, "HAUTEUR" = inradius.
+/**
+ * @file VueJeu.cpp
+ * @brief Implementation de la Vue Qt.
+ *
+ * La geometrie du plateau hexagonal est conservee de la version
+ * precedente du projet : on travaille en repere centre, l'hexagone a
+ * 6 sommets v1..v6, chaque sextant est un rhombe partant d'un sommet
+ * vers le centre. Les 16 cases d'un sextant sont obtenues par
+ * interpolation bilineaire entre 3 directions (s1, s2 demi-rayons et un
+ * midpoint d'arete).
+ */
 
-static const double TAILLE = 350.0;          // circumradius du hexagone
-static const double COTE   = TAILLE / 2.0;
-static const double HAUTEUR = std::sqrt(TAILLE * TAILLE - COTE * COTE);  // ~= TAILLE * sqrt(3)/2
-static const double PI = 3.14159265358979323846;
-static const double COS30 = std::cos(PI / 6.0);
-static const double SIN30 = std::sin(PI / 6.0);
-static const double COS60 = std::cos(PI / 3.0);
+// ─── Geometrie de l'hexagone ─────────────────────────────────────────────
 
-// Sommets v1..v6 du hexagone (en repere ecran : y vers le bas).
-//   v1 = haut-gauche, v2 = haut-droite, v3 = droite,
-//   v4 = bas-droite,  v5 = bas-gauche,  v6 = gauche.
+static const double TAILLE   = 350.0;
+static const double COTE     = TAILLE / 2.0;
+static const double HAUTEUR  = std::sqrt(TAILLE * TAILLE - COTE * COTE);
+static const double PI       = 3.14159265358979323846;
+static const double COS30    = std::cos(PI / 6.0);
+static const double SIN30    = std::sin(PI / 6.0);
+static const double COS60    = std::cos(PI / 3.0);
+
 static std::array<QPointF, 6> sommetsHexagone() {
     return {{
-        QPointF(-TAILLE * COS60, -HAUTEUR),  // v1
-        QPointF( TAILLE * COS60, -HAUTEUR),  // v2
-        QPointF( TAILLE,          0.0),       // v3
-        QPointF( TAILLE * COS60,  HAUTEUR),  // v4
-        QPointF(-TAILLE * COS60,  HAUTEUR),  // v5
-        QPointF(-TAILLE,          0.0),       // v6
+        QPointF(-TAILLE * COS60, -HAUTEUR),  // v1 haut-gauche
+        QPointF( TAILLE * COS60, -HAUTEUR),  // v2 haut-droite
+        QPointF( TAILLE,          0.0),       // v3 droite
+        QPointF( TAILLE * COS60,  HAUTEUR),  // v4 bas-droite
+        QPointF(-TAILLE * COS60,  HAUTEUR),  // v5 bas-gauche
+        QPointF(-TAILLE,          0.0),       // v6 gauche
     }};
 }
 
-// Midpoints des aretes : va = mid(v6,v1), vb = mid(v1,v2), etc.
 static std::array<QPointF, 6> midpointsHexagone() {
     return {{
-        QPointF(-HAUTEUR * COS30, -HAUTEUR * SIN30),  // va
-        QPointF( 0.0,             -HAUTEUR),          // vb
-        QPointF( HAUTEUR * COS30, -HAUTEUR * SIN30),  // vc
-        QPointF( HAUTEUR * COS30,  HAUTEUR * SIN30),  // vd
-        QPointF( 0.0,              HAUTEUR),          // ve
-        QPointF(-HAUTEUR * COS30,  HAUTEUR * SIN30),  // vf
+        QPointF(-HAUTEUR * COS30, -HAUTEUR * SIN30),  // mid v6-v1
+        QPointF( 0.0,             -HAUTEUR),          // mid v1-v2
+        QPointF( HAUTEUR * COS30, -HAUTEUR * SIN30),  // mid v2-v3
+        QPointF( HAUTEUR * COS30,  HAUTEUR * SIN30),  // mid v3-v4
+        QPointF( 0.0,              HAUTEUR),          // mid v4-v5
+        QPointF(-HAUTEUR * COS30,  HAUTEUR * SIN30),  // mid v5-v6
     }};
 }
 
-// Pour une case (x, y) sur la grille 12x12 (avec sextant deja attache),
-// retourne les 4 coins du quadrilatere correspondant.
-//
-// Calcul : chaque sextant est un rhombe, ses 4x4 cases sont obtenues par
-// interpolation bilineaire entre 3 directions :
-//   s1 = v[i]/2, s2 = v[(i+2)%6]/2  (deux demi-rayons depuis le centre)
-//   corner = v[(i+4)%6]             (sommet exterieur du rhombe)
-//   U(rY) = midpoint[(i+1)%6]*rY - s1*rY + s2
-//   p(rX, rY) = s1*rY + U(rY)*rX
-//   coin = corner + p
+/// Renvoie les 4 coins du quadrilatere d'une case dans le repere centre.
 static std::array<QPointF, 4> coinsDeCase(int x, int y, int sextant) {
     auto V = sommetsHexagone();
     auto M = midpointsHexagone();
@@ -87,7 +79,7 @@ static std::array<QPointF, 4> coinsDeCase(int x, int y, int sextant) {
     int i = sextant;
     QPointF s1     = V[i]            / 2.0;
     QPointF s2     = V[(i + 2) % 6]  / 2.0;
-    QPointF corner = V[(i + 4) % 6];   // pas de + mid : on travaille en repere centre, mid sera ajoute par le QGraphicsScene
+    QPointF corner = V[(i + 4) % 6];
     QPointF vAbc   = M[(i + 1) % 6];
 
     int xLocal = x % 4;
@@ -111,10 +103,10 @@ static std::array<QPointF, 4> coinsDeCase(int x, int y, int sextant) {
     };
 
     return {
-        pt(U1, rY1, rX1),  // p1
-        pt(U1, rY1, rX2),  // p2
-        pt(U2, rY2, rX2),  // p3
-        pt(U2, rY2, rX1),  // p4
+        pt(U1, rY1, rX1),
+        pt(U1, rY1, rX2),
+        pt(U2, rY2, rX2),
+        pt(U2, rY2, rX1),
     };
 }
 
@@ -123,19 +115,22 @@ static QPointF centreDeCase(int x, int y, int sextant) {
     return (coins[0] + coins[1] + coins[2] + coins[3]) / 4.0;
 }
 
-// Symbole Unicode pour chaque type de piece (jeu de pieces pleines)
+/// Symbole Unicode pour chaque type de piece.
 static QString symbolePiece(const std::string& type) {
-    if (type == "Roi")      return QString::fromUtf8("♚");  // ♚
-    if (type == "Reine")    return QString::fromUtf8("♛");  // ♛
-    if (type == "Tour")     return QString::fromUtf8("♜");  // ♜
-    if (type == "Fou")      return QString::fromUtf8("♝");  // ♝
-    if (type == "Cavalier") return QString::fromUtf8("♞");  // ♞
-    if (type == "Pion")     return QString::fromUtf8("♟");  // ♟
+    if (type == "Roi")      return QString::fromUtf8("\xE2\x99\x9A");
+    if (type == "Reine")    return QString::fromUtf8("\xE2\x99\x9B");
+    if (type == "Tour")     return QString::fromUtf8("\xE2\x99\x9C");
+    if (type == "Fou")      return QString::fromUtf8("\xE2\x99\x9D");
+    if (type == "Cavalier") return QString::fromUtf8("\xE2\x99\x9E");
+    if (type == "Pion")     return QString::fromUtf8("\xE2\x99\x9F");
     return QString("?");
 }
 
+// ─── Implementation VueJeu ───────────────────────────────────────────────
+
 VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
-    : QMainWindow(parent), modele(modele),
+    : QMainWindow(parent),
+      modele(modele),
       scene(new QGraphicsScene(this)),
       vue(new QGraphicsView(scene, this)),
       labelJoueur(new QLabel("Joueur : -", this)),
@@ -145,7 +140,7 @@ VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
 }
 
 void VueJeu::configurerInterface() {
-    setWindowTitle("Bienvenue sur le jeu Yalta !");
+    setWindowTitle("Jeu d'echecs Yalta");
     resize(1000, 900);
 
     QWidget* central = new QWidget(this);
@@ -177,20 +172,22 @@ void VueJeu::afficher() {
                    Qt::KeepAspectRatio);
 }
 
-void VueJeu::mettreAJour(const ModeleJeu& modeleRef) {
-    auto joueur = modeleRef.getJoueurActuel();
+void VueJeu::mettreAJour(const ModeleJeu& m) {
+    auto joueur = m.getJoueurActuel();
     if (joueur) {
         labelJoueur->setText(QString("Joueur : %1")
             .arg(QString::fromStdString(joueur->getNom())));
     }
 
-    switch (modeleRef.getEtat()) {
-        case EtatPartie::EN_COURS:     labelEtat->setText("Etat : EN COURS");     break;
-        case EtatPartie::ECHEC:        labelEtat->setText("Etat : ECHEC !");      break;
-        case EtatPartie::ECHEC_ET_MAT: labelEtat->setText("Etat : ECHEC ET MAT"); break;
-        case EtatPartie::PAT:          labelEtat->setText("Etat : PAT");          break;
-        case EtatPartie::NULLE:        labelEtat->setText("Etat : NULLE");        break;
+    QString txt;
+    switch (m.getEtat()) {
+        case EtatPartie::EN_COURS:     txt = "Etat : EN COURS";     break;
+        case EtatPartie::ECHEC:        txt = "Etat : ECHEC !";      break;
+        case EtatPartie::ECHEC_ET_MAT: txt = "Etat : ECHEC ET MAT"; break;
+        case EtatPartie::PAT:          txt = "Etat : PAT";          break;
+        case EtatPartie::NULLE:        txt = "Etat : NULLE";        break;
     }
+    labelEtat->setText(txt);
 
     caseSelectionnee = nullptr;
     coupsPossibles.clear();
@@ -220,7 +217,6 @@ void VueJeu::dessinerPlateau() {
     if (!modele) return;
     auto cases = modele->getPlateau()->getToutesLesCases();
 
-    // Couleurs damier — sombres comme le code Python (bois fonce)
     const QColor COULEUR_FONCE(54, 39, 32);
     const QColor COULEUR_CLAIR(229, 210, 170);
 
@@ -233,10 +229,10 @@ void VueJeu::dessinerPlateau() {
         QPolygonF quad;
         quad << coins[0] << coins[1] << coins[2] << coins[3];
 
-        QColor couleur = (c->getCouleur() == "clair") ? COULEUR_CLAIR : COULEUR_FONCE;
+        QColor couleur = (c->getCouleurDamier() == "clair") ? COULEUR_CLAIR : COULEUR_FONCE;
         QPen pen(QColor(20, 15, 10), 1);
 
-        // surbrillance : selection ou coup possible
+        // Surbrillance.
         if (caseSelectionnee
             && caseSelectionnee->getX() == x
             && caseSelectionnee->getY() == y) {
@@ -246,10 +242,10 @@ void VueJeu::dessinerPlateau() {
             for (const auto& dest : coupsPossibles) {
                 if (dest->getX() == x && dest->getY() == y) {
                     if (c->estOccupee()) {
-                        couleur = QColor(220, 90, 90);    // capture
+                        couleur = QColor(220, 90, 90);
                         pen = QPen(QColor(150, 30, 30), 3);
                     } else {
-                        couleur = QColor(150, 220, 140);  // deplacement
+                        couleur = QColor(150, 220, 140);
                         pen = QPen(QColor(60, 140, 60), 3);
                     }
                     break;
@@ -260,10 +256,25 @@ void VueJeu::dessinerPlateau() {
         auto* item = scene->addPolygon(quad, pen, QBrush(couleur));
         item->setData(0, x);
         item->setData(1, y);
-        item->setToolTip(QString("sextant=%1  (x=%2, y=%3)").arg(sx).arg(x).arg(y));
+        item->setToolTip(QString("%1  (sext=%2, x=%3, y=%4)")
+            .arg(QString::fromStdString(c->getNotation()))
+            .arg(sx).arg(x).arg(y));
+
+        // Etiquette de notation dans la case.
+        QPointF centre = centreDeCase(x, y, sx);
+        auto* label = scene->addSimpleText(
+            QString::fromStdString(c->getNotation()));
+        QFont fLabel;
+        fLabel.setPixelSize(9);
+        label->setFont(fLabel);
+        label->setBrush(QBrush(QColor(50, 180, 50)));
+        label->setZValue(1);
+        QRectF lr = label->boundingRect();
+        label->setPos(centre.x() - lr.width()  / 2.0,
+                      centre.y() - lr.height() / 2.0);
     }
 
-    // Cadre exterieur du hexagone
+    // Cadre exterieur.
     auto V = sommetsHexagone();
     QPolygonF hex;
     for (int i = 0; i < 6; i++) hex << V[i];
@@ -287,17 +298,11 @@ void VueJeu::dessinerPieces() {
         QColor fond, contour;
         switch (piece->getCouleur()) {
             case Couleur::BLANC:
-                fond    = QColor(255, 255, 255);
-                contour = QColor(0, 0, 0);
-                break;
+                fond    = QColor(255, 255, 255); contour = QColor(0, 0, 0); break;
             case Couleur::NOIR:
-                fond    = QColor(30, 30, 30);
-                contour = QColor(220, 220, 220);
-                break;
+                fond    = QColor(30, 30, 30);    contour = QColor(220, 220, 220); break;
             case Couleur::ROUGE:
-                fond    = QColor(214, 21, 65);
-                contour = QColor(40, 0, 0);
-                break;
+                fond    = QColor(214, 21, 65);   contour = QColor(40, 0, 0); break;
         }
 
         auto* texte = scene->addSimpleText(symbolePiece(piece->getType()), policePiece);
@@ -308,12 +313,6 @@ void VueJeu::dessinerPieces() {
         texte->setPos(centre.x() - br.width()  / 2.0,
                       centre.y() - br.height() / 2.0);
     }
-}
-
-void VueJeu::afficherAlerteEchec(const std::string& nomJoueur) {
-    QMessageBox::warning(this, "Echec !",
-        QString("Le roi de %1 est en echec !")
-            .arg(QString::fromStdString(nomJoueur)));
 }
 
 bool VueJeu::eventFilter(QObject* watched, QEvent* event) {

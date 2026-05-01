@@ -1,40 +1,28 @@
 #include "pieces/Piece.hpp"
 #include "model/Case.hpp"
 
-Piece::Piece(Couleur couleur, std::shared_ptr<Case> position)
-    : couleur(couleur), position(position), estVivanteFlag(true) {
+Piece::Piece(Couleur couleur)
+    : couleur(couleur),
+      position(nullptr),
+      aDejaBouge(false),
+      vivante(true) {
 }
 
-bool Piece::estVivante() const {
-    return estVivanteFlag;
-}
+Couleur               Piece::getCouleur()   const { return couleur; }
+std::shared_ptr<Case> Piece::getPosition()  const { return position; }
+void                  Piece::setPosition(std::shared_ptr<Case> c) { position = c; }
 
-void Piece::deplacer(std::shared_ptr<Case> cible) {
-    if (cible == nullptr) return;
+bool Piece::getADejaBouge()  const         { return aDejaBouge; }
+void Piece::setADejaBouge(bool v)          { aDejaBouge = v; }
 
-    if (position != nullptr) {
-        position->retirerPiece();
-    }
-    position = cible;
-}
+bool Piece::estVivante() const             { return vivante; }
 
 void Piece::capturer() {
-    estVivanteFlag = false;
+    vivante = false;
     position = nullptr;
 }
 
 void Piece::ressusciter() {
-    estVivanteFlag = true;
-}
-
-Couleur Piece::getCouleur() const {
-    return couleur;
-}
-
-std::shared_ptr<Case> Piece::getPosition() const {
-    return position;
-}
-
-void Piece::setPosition(std::shared_ptr<Case> nouvelleCase) {
-    position = nouvelleCase;
+    vivante = true;
+    // La position sera reaffectee par Coup::annuler.
 }

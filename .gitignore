@@ -1,0 +1,11 @@
+build/
+old/
+tests/
+*.o
+*.exe
+*.dll
+.cache/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
