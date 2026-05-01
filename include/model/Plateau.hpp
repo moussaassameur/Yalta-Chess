@@ -64,6 +64,9 @@ public:
     /// @return true si le roi de la couleur c est attaque par une piece adverse.
     bool estEnEchec(Couleur c) const;
 
+    /// @return true si le roi de `victime` est attaque specifiquement par `attaquant`.
+    bool estEnEchecPar(Couleur victime, Couleur attaquant) const;
+
     /// @name Topologie Yalta -- voisinage avec bending
     ///
     /// Les pieces glissantes (Tour, Fou, Reine) avancent d'une case a la

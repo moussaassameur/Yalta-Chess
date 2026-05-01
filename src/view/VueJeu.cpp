@@ -23,6 +23,7 @@
 #include <QEvent>
 #include <QPainter>
 #include <QFrame>
+#include <QMessageBox>
 
 #include <array>
 #include <cmath>
@@ -186,6 +187,24 @@ void VueJeu::mettreAJour(const ModeleJeu& m) {
         case EtatPartie::ECHEC_ET_MAT: txt = "ECHEC ET MAT"; break;
         case EtatPartie::PAT:          txt = "PAT";          break;
         case EtatPartie::NULLE:        txt = "NULLE";        break;
+        case EtatPartie::VICTOIRE:     txt = "VICTOIRE !";   break;
+    }
+
+    // ── Message de victoire ─────────────────────────────────────────────────
+    if (m.getEtat() == EtatPartie::VICTOIRE) {
+        QString msg;
+        for (const auto& j : m.getJoueurs()) {
+            const double s = j->getScore();
+            QString scoreStr = (s == 1.0) ? "1" : (s == 0.5) ? "1/2" : "0";
+            if (!j->getEstElimine()) {
+                // Dernier survivant
+                msg += QString("%1 a gagne la partie !\n").arg(
+                    QString::fromStdString(j->getNom()));
+            }
+            msg += QString("  %1 : %2 point(s)\n").arg(
+                QString::fromStdString(j->getNom()), scoreStr);
+        }
+        QMessageBox::information(this, "Fin de partie", msg);
     }
 
     // Affiche les joueurs elimines dans le label d'etat.

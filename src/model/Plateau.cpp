@@ -337,6 +337,20 @@ bool Plateau::estEnEchec(Couleur c) const {
     return false;
 }
 
+bool Plateau::estEnEchecPar(Couleur victime, Couleur attaquant) const {
+    auto caseRoi = trouverRoi(victime);
+    if (!caseRoi) return false;
+
+    for (const auto& kv : cases) {
+        auto p = kv.second->getPiece();
+        if (!p || !p->estVivante() || p->getCouleur() != attaquant) continue;
+        for (const auto& dest : p->getDeplacements(*this)) {
+            if (dest == caseRoi) return true;
+        }
+    }
+    return false;
+}
+
 void Plateau::creerCases() {
     // Description des 6 blocs valides : pour chaque sextant, son rectangle
     // dans la grille 12x12 et son numero. Doit rester synchronise avec

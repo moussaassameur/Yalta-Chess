@@ -33,10 +33,17 @@ public:
     /// @brief Marque le joueur comme elimine.
     void eliminer();
 
+    /// @return Score du joueur (0, 0.5 ou 1).
+    double getScore() const;
+
+    /// @brief Ajoute des points au score du joueur.
+    void ajouterScore(double s);
+
 protected:
     std::string nom;
     Couleur     couleur;
     bool        estElimine;
+    double      score;
 };
 
 #endif // JOUEUR_HPP

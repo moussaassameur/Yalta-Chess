@@ -24,7 +24,8 @@ enum class EtatPartie {
     ECHEC,
     ECHEC_ET_MAT,
     PAT,
-    NULLE
+    NULLE,
+    VICTOIRE   ///< Un seul joueur reste actif -- fin de partie.
 };
 
 inline std::string etatPartieToString(EtatPartie e) {
@@ -34,6 +35,7 @@ inline std::string etatPartieToString(EtatPartie e) {
         case EtatPartie::ECHEC_ET_MAT: return "ECHEC_ET_MAT";
         case EtatPartie::PAT:          return "PAT";
         case EtatPartie::NULLE:        return "NULLE";
+        case EtatPartie::VICTOIRE:     return "VICTOIRE";
     }
     return "?";
 }
