@@ -26,6 +26,8 @@ ControleurJeu::ControleurJeu(std::shared_ptr<ModeleJeu> modele,
       caseSelectionnee(nullptr) {
     QObject::connect(vue.get(), &VueJeu::caseCliquee,
                      this,      &ControleurJeu::gererClic);
+    QObject::connect(vue.get(), &VueJeu::annulerDemande,
+                     this,      &ControleurJeu::annulerCoup);
 }
 
 void ControleurJeu::initialiser() {
@@ -92,6 +94,12 @@ void ControleurJeu::gererClic(int x, int y) {
     }
 
     caseSelectionnee = nullptr;
+}
+
+void ControleurJeu::annulerCoup() {
+    caseSelectionnee = nullptr;
+    vue->effacerSurlignage();
+    modele->annulerDernierCoup();
 }
 
 std::string ControleurJeu::demanderPromotion() {

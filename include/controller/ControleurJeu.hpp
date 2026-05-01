@@ -42,6 +42,9 @@ private slots:
     /// @brief Slot appele a chaque clic sur une case du plateau.
     void gererClic(int x, int y);
 
+    /// @brief Slot appele quand le joueur clique sur Annuler.
+    void annulerCoup();
+
 private:
     std::shared_ptr<ModeleJeu> modele;
     std::shared_ptr<VueJeu>    vue;

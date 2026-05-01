@@ -24,6 +24,7 @@
 #include <QPainter>
 #include <QFrame>
 #include <QMessageBox>
+#include <QPushButton>
 
 #include <array>
 #include <cmath>
@@ -136,6 +137,7 @@ VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
       vue(new QGraphicsView(scene, this)),
       labelJoueur(new QLabel("Joueur : -", this)),
       labelEtat(new QLabel("Etat : EN COURS", this)),
+      btnAnnuler(new QPushButton("Annuler", this)),
       caseSelectionnee(nullptr) {
     configurerInterface();
 }
@@ -150,9 +152,14 @@ void VueJeu::configurerInterface() {
     QHBoxLayout* barreInfo = new QHBoxLayout();
     labelJoueur->setStyleSheet("font-size: 16px; font-weight: bold; color: white;");
     labelEtat->setStyleSheet("font-size: 14px; color: white;");
+    btnAnnuler->setStyleSheet("font-size: 13px; padding: 4px 12px;");
     barreInfo->addWidget(labelJoueur);
     barreInfo->addStretch();
     barreInfo->addWidget(labelEtat);
+    barreInfo->addWidget(btnAnnuler);
+
+    QObject::connect(btnAnnuler, &QPushButton::clicked,
+                     this, &VueJeu::annulerDemande);
 
     layout->addLayout(barreInfo);
     layout->addWidget(vue);

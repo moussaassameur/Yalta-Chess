@@ -49,6 +49,9 @@ signals:
     /// Emis par eventFilter quand le joueur clique sur une case.
     void caseCliquee(int x, int y);
 
+    /// Emis quand le joueur clique sur le bouton Annuler.
+    void annulerDemande();
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -59,6 +62,7 @@ private:
     QGraphicsView*  vue;
     QLabel*         labelJoueur;
     QLabel*         labelEtat;
+    class QPushButton* btnAnnuler;
 
     // Etat de surlignage local a la vue.
     std::shared_ptr<Case>              caseSelectionnee;

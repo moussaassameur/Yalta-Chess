@@ -150,6 +150,23 @@ void ModeleJeu::annulerDernierCoup() {
     auto coup = historique->annulerDernier();
     if (!coup) return;
     coup->annuler(*plateau);
+
+    // Revenir au joueur precedent (sens inverse du tour).
+    if (!joueurs.empty() && joueurActuel) {
+        int idx = 0;
+        for (int i = 0; i < (int)joueurs.size(); ++i)
+            if (joueurs[i] == joueurActuel) { idx = i; break; }
+
+        for (int i = 1; i <= (int)joueurs.size(); ++i) {
+            const int precedent = (idx - i + (int)joueurs.size()) % (int)joueurs.size();
+            if (!joueurs[precedent]->getEstElimine()) {
+                joueurActuel = joueurs[precedent];
+                break;
+            }
+        }
+    }
+
+    etat = EtatPartie::EN_COURS;
     notifier();
 }
 
