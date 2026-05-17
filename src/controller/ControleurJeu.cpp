@@ -11,12 +11,17 @@
 #include "pieces/Piece.hpp"
 #include "pieces/Pion.hpp"
 #include "joueur/Joueur.hpp"
+#include "joueur/JoueurHumain.hpp"
+#include "joueur/JoueurIA.hpp"
 
 #include <QDialog>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QComboBox>
+#include <QSpinBox>
 
 #include <algorithm>
 
@@ -34,8 +39,11 @@ ControleurJeu::ControleurJeu(std::shared_ptr<ModeleJeu> modele,
 }
 
 void ControleurJeu::initialiser() {
-    modele->demarrer();
     vue->afficher();
+    // On configure d'abord les joueurs via une fenetre modale, puis on
+    // demarre le modele avec la composition choisie.
+    auto joueurs = demanderConfigJoueurs();
+    modele->demarrer(joueurs);
 }
 
 void ControleurJeu::gererClic(int x, int y) {
@@ -165,4 +173,79 @@ std::string ControleurJeu::demanderPromotion() {
     layout->addLayout(boutons);
     dialog.exec();
     return choix;
+}
+
+std::vector<std::shared_ptr<Joueur>> ControleurJeu::demanderConfigJoueurs() {
+    QDialog dialog(vue.get());
+    dialog.setWindowTitle("Yalta Chess - Nouvelle partie");
+    dialog.setModal(true);
+
+    auto* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(new QLabel("Configuration des joueurs :"));
+
+    // Grille : nom | type (combo) | profondeur IA (spinbox)
+    auto* grille = new QGridLayout();
+    grille->addWidget(new QLabel("Joueur"),     0, 0);
+    grille->addWidget(new QLabel("Type"),       0, 1);
+    grille->addWidget(new QLabel("Profondeur"), 0, 2);
+
+    struct Ligne {
+        QComboBox* combo;
+        QSpinBox*  spin;
+        QString    nom;
+        Couleur    couleur;
+    };
+    std::vector<Ligne> lignes = {
+        {nullptr, nullptr, "BLANC", Couleur::BLANC},
+        {nullptr, nullptr, "ROUGE", Couleur::ROUGE},
+        {nullptr, nullptr, "NOIR",  Couleur::NOIR},
+    };
+
+    for (int i = 0; i < (int)lignes.size(); ++i) {
+        grille->addWidget(new QLabel(lignes[i].nom), i + 1, 0);
+
+        auto* combo = new QComboBox(&dialog);
+        combo->addItem("Humain");
+        combo->addItem("IA");
+        grille->addWidget(combo, i + 1, 1);
+
+        auto* spin = new QSpinBox(&dialog);
+        spin->setRange(1, 4);
+        spin->setValue(2);
+        spin->setEnabled(false);  // active uniquement si IA
+        grille->addWidget(spin, i + 1, 2);
+
+        // Active le spinbox uniquement quand "IA" est selectionne.
+        QObject::connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            [spin](int idx) { spin->setEnabled(idx == 1); });
+
+        lignes[i].combo = combo;
+        lignes[i].spin  = spin;
+    }
+
+    layout->addLayout(grille);
+
+    auto* btnOK = new QPushButton("Commencer la partie", &dialog);
+    layout->addWidget(btnOK);
+    QObject::connect(btnOK, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    std::vector<std::shared_ptr<Joueur>> joueurs;
+    if (dialog.exec() == QDialog::Accepted) {
+        for (const auto& l : lignes) {
+            const std::string nom = ("Joueur " + l.nom).toStdString();
+            if (l.combo->currentIndex() == 1) {
+                joueurs.push_back(std::make_shared<JoueurIA>(
+                    nom, l.couleur, l.spin->value(), 4));
+            } else {
+                joueurs.push_back(std::make_shared<JoueurHumain>(nom, l.couleur));
+            }
+        }
+    } else {
+        // Annulation : 3 humains par defaut.
+        for (const auto& l : lignes) {
+            joueurs.push_back(std::make_shared<JoueurHumain>(
+                ("Joueur " + l.nom).toStdString(), l.couleur));
+        }
+    }
+    return joueurs;
 }

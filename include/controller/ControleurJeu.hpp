@@ -3,10 +3,12 @@
 
 #include <QObject>
 #include <memory>
+#include <vector>
 
 class ModeleJeu;
 class VueJeu;
 class Case;
+class Joueur;
 
 /**
  * @file ControleurJeu.hpp
@@ -54,6 +56,15 @@ private:
 
     /// Affiche un dialogue modal et retourne le type de piece choisi.
     std::string demanderPromotion();
+
+    /**
+     * @brief Ouvre une fenetre de configuration au demarrage et retourne
+     *        la liste des 3 joueurs (humain ou IA) choisis par l'utilisateur.
+     *
+     * Si la fenetre est fermee sans validation, retourne 3 joueurs humains
+     * par defaut.
+     */
+    std::vector<std::shared_ptr<Joueur>> demanderConfigJoueurs();
 };
 
 #endif // CONTROLEUR_JEU_HPP
