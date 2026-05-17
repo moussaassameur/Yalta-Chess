@@ -124,6 +124,16 @@ Pion::getDeplacements(const Plateau& plateau) const {
                 if (cible->estOccupee()
                     && cible->getPiece()->getCouleur() != couleur)
                     coups.push_back(cible);
+                // Prise en passant : la case diagonale est vide mais
+                // correspond a la case sautee par un pion adverse qui vient
+                // de faire son bond de 2.
+                else if (!cible->estOccupee()
+                         && cible == plateau.getCaseEnPassantCible()) {
+                    auto casePion = plateau.getCaseEnPassantPion();
+                    if (casePion && casePion->estOccupee()
+                        && casePion->getPiece()->getCouleur() != couleur)
+                        coups.push_back(cible);
+                }
             } else if (surApexPropre) {
                 // La diagonale traverse le centre du plateau : 2 options
                 // de capture sur les apexes des sextants same-color en face.

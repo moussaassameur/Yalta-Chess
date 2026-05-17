@@ -6,6 +6,7 @@
 #include "coup/CoupSimple.hpp"
 #include "coup/CoupPromotion.hpp"
 #include "coup/CoupRoque.hpp"
+#include "coup/CoupPriseEnPassant.hpp"
 #include "pieces/Roi.hpp"
 #include "pieces/Piece.hpp"
 #include "pieces/Pion.hpp"
@@ -88,6 +89,14 @@ void ControleurJeu::gererClic(int x, int y) {
         if (pion && Pion::estCaseDePromotion(caseClic, pion->getCouleur())) {
             std::string type = demanderPromotion();
             coup = std::make_shared<CoupPromotion>(caseSelectionnee, caseClic, type);
+
+        // Prise en passant : pion qui va sur la case "sautee" par un
+        // pion adverse ayant fait un bond de 2 au coup precedent.
+        } else if (pion && !caseClic->estOccupee()
+                   && caseClic == plateau->getCaseEnPassantCible()
+                   && plateau->getCaseEnPassantPion()) {
+            coup = std::make_shared<CoupPriseEnPassant>(
+                caseSelectionnee, caseClic, plateau->getCaseEnPassantPion());
 
         // Roque : roi se deplace de 2 cases en ligne droite dans le meme sextant.
         } else if (std::dynamic_pointer_cast<Roi>(piece)

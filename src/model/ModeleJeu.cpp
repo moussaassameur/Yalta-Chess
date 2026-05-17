@@ -1,12 +1,15 @@
 #include "model/ModeleJeu.hpp"
 #include "model/Plateau.hpp"
+#include "model/Case.hpp"
 #include "model/Historique.hpp"
 #include "coup/Coup.hpp"
+#include "coup/CoupSimple.hpp"
 #include "joueur/JoueurHumain.hpp"
 #include "observer/Observateur.hpp"
 #include "pieces/Piece.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 
 /**
  * @file ModeleJeu.cpp
@@ -40,8 +43,35 @@ void ModeleJeu::demarrer() {
 void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     if (!coup || !coup->estValide(*plateau)) return;
 
+    // Sauvegarde l'etat en passant avant l'execution, pour pouvoir
+    // restaurer lors d'un annulerDernierCoup().
+    historiqueEnPassant.push_back({plateau->getCaseEnPassantCible(),
+                                   plateau->getCaseEnPassantPion()});
+
     coup->executer(*plateau);
     historique->ajouter(coup);
+
+    // Met a jour la fenetre de prise en passant : reservee si le coup
+    // est un bond de pion de 2 cases, sinon le droit est perdu.
+    plateau->clearEnPassant();
+    auto coupSimple = std::dynamic_pointer_cast<CoupSimple>(coup);
+    if (coupSimple) {
+        auto piece = coupSimple->getPiece();
+        if (piece && piece->getType() == "Pion") {
+            auto dep = coupSimple->getDepart();
+            auto arr = coupSimple->getArrivee();
+            if (dep && arr) {
+                const int adx = std::abs(arr->getX() - dep->getX());
+                const int ady = std::abs(arr->getY() - dep->getY());
+                if (adx == 2 || ady == 2) {
+                    auto sautee = plateau->getCase((dep->getX() + arr->getX()) / 2,
+                                                   (dep->getY() + arr->getY()) / 2);
+                    if (sautee)
+                        plateau->setEnPassant(sautee, arr);
+                }
+            }
+        }
+    }
 
     tourSuivant();
     calculerEtat();
@@ -150,6 +180,14 @@ void ModeleJeu::annulerDernierCoup() {
     auto coup = historique->annulerDernier();
     if (!coup) return;
     coup->annuler(*plateau);
+
+    // Restaure l'etat de prise en passant qui etait actif avant ce coup.
+    if (!historiqueEnPassant.empty()) {
+        auto prev = historiqueEnPassant.back();
+        historiqueEnPassant.pop_back();
+        if (prev.first) plateau->setEnPassant(prev.first, prev.second);
+        else            plateau->clearEnPassant();
+    }
 
     // Revenir au joueur precedent (sens inverse du tour).
     if (!joueurs.empty() && joueurActuel) {

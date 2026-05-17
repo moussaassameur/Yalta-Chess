@@ -4,6 +4,7 @@
 #include "model/EtatPartie.hpp"
 #include "model/Couleur.hpp"
 #include <memory>
+#include <utility>
 #include <vector>
 
 class Plateau;
@@ -11,6 +12,7 @@ class Historique;
 class Coup;
 class Joueur;
 class Observateur;
+class Case;
 
 /**
  * @file ModeleJeu.hpp
@@ -88,6 +90,11 @@ private:
 
     /// Liste des observateurs enregistres.
     std::vector<std::shared_ptr<Observateur>> observateurs;
+
+    /// Pile des etats en passant avant chaque coup, pour pouvoir
+    /// restaurer correctement lors d'un annulerDernierCoup().
+    std::vector<std::pair<std::shared_ptr<Case>,
+                          std::shared_ptr<Case>>> historiqueEnPassant;
 
     /// @brief Diffuse une notification a tous les observateurs.
     void notifier();
