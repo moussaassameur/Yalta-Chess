@@ -16,6 +16,10 @@ class JoueurHumain : public Joueur {
 public:
     JoueurHumain(const std::string& nom, Couleur couleur);
     ~JoueurHumain() override = default;
+
+    /// Toujours nullptr : le joueur humain choisit son coup via l'UI
+    /// (clic souris), pas via cette methode.
+    std::shared_ptr<Coup> jouerTour(Plateau& plateau) override;
 };
 
 #endif // JOUEUR_HUMAIN_HPP

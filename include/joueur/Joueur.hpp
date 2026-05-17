@@ -2,7 +2,11 @@
 #define JOUEUR_HPP
 
 #include "model/Couleur.hpp"
+#include <memory>
 #include <string>
+
+class Coup;
+class Plateau;
 
 /**
  * @file Joueur.hpp
@@ -38,6 +42,16 @@ public:
 
     /// @brief Ajoute des points au score du joueur.
     void ajouterScore(double s);
+
+    /**
+     * @brief Demande au joueur de choisir son coup pour le tour courant.
+     * @param plateau Plateau actuel (passe en non-const car les sous-classes
+     *                comme JoueurIA peuvent l'utiliser pour simuler/annuler
+     *                des coups pendant l'analyse).
+     * @return Le coup choisi, ou nullptr si le joueur attend une entree
+     *         externe (cas du JoueurHumain qui joue via clic UI).
+     */
+    virtual std::shared_ptr<Coup> jouerTour(Plateau& plateau) = 0;
 
 protected:
     std::string nom;
