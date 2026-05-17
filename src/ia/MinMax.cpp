@@ -6,7 +6,9 @@
 #include "pieces/Piece.hpp"
 
 #include <algorithm>
+#include <future>
 #include <limits>
+#include <thread>
 #include <vector>
 
 /**
@@ -77,23 +79,72 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
     auto coups = genererCoupsLegaux(plateau, couleurIA);
     if (coups.empty()) return nullptr;
 
+    // Mode mono-thread
+    if (nbThreads <= 1) {
+        std::shared_ptr<Coup> meilleurCoup = nullptr;
+        int meilleureValeur = std::numeric_limits<int>::min();
+        for (auto& coup : coups) {
+            coup->executer(plateau);
+            const int v = minMax(plateau, profondeur - 1,
+                                 /*maximisant=*/false,
+                                 joueurSuivant(couleurIA));
+            coup->annuler(plateau);
+            if (v > meilleureValeur) {
+                meilleureValeur = v;
+                meilleurCoup    = coup;
+            }
+        }
+        return meilleurCoup;
+    }
+
+    // Mode multi-thread
+    // On parallelise au niveau racine : chaque coup candidat est evalue
+    // dans un thread separe, qui travaille sur son propre clone du plateau.
+    // L'exploration recursive interne reste mono-thread (suffisant pour
+    // beneficier d'un speed-up significatif a la racine).
+    //
+    // Pour respecter nbThreads, on lance les futures par batches de
+    // nbThreads et on attend chaque batch avant le suivant.
+    std::vector<int> valeurs(coups.size());
+    const int batchSize = std::max(1, nbThreads);
+
+    for (size_t debut = 0; debut < coups.size(); debut += batchSize) {
+        const size_t fin = std::min(debut + batchSize, coups.size());
+        std::vector<std::future<int>> futures;
+
+        for (size_t i = debut; i < fin; ++i) {
+            auto coupSimple = std::dynamic_pointer_cast<CoupSimple>(coups[i]);
+            // Coordonnees a transmettre au thread (les Case du plateau
+            // original ne sont PAS valides sur le clone).
+            const int xDep = coupSimple->getDepart()->getX();
+            const int yDep = coupSimple->getDepart()->getY();
+            const int xArr = coupSimple->getArrivee()->getX();
+            const int yArr = coupSimple->getArrivee()->getY();
+
+            futures.push_back(std::async(std::launch::async,
+                [this, &plateau, xDep, yDep, xArr, yArr]() {
+                    auto clone = plateau.clone();
+                    CoupSimple c(clone->getCase(xDep, yDep),
+                                 clone->getCase(xArr, yArr));
+                    c.executer(*clone);
+                    return minMax(*clone, profondeur - 1,
+                                  /*maximisant=*/false,
+                                  joueurSuivant(couleurIA));
+                }));
+        }
+
+        for (size_t i = debut; i < fin; ++i) {
+            valeurs[i] = futures[i - debut].get();
+        }
+    }
+
+    // Selection du meilleur coup parmi les valeurs collectees.
     std::shared_ptr<Coup> meilleurCoup = nullptr;
     int meilleureValeur = std::numeric_limits<int>::min();
-
-    // Au niveau racine, on est l'IA qui MAXimise.
-    // Pour chaque coup candidat, on l'execute, on evalue la suite via
-    // minMax (qui sera un noeud MIN car c'est le tour de l'adversaire),
-    // puis on annule.
-    for (auto& coup : coups) {
-        coup->executer(plateau);
-        const int v = minMax(plateau, profondeur - 1,
-                             /*maximisant=*/false,
-                             joueurSuivant(couleurIA));
-        coup->annuler(plateau);
-
-        if (v > meilleureValeur) {
-            meilleureValeur = v;
-            meilleurCoup    = coup;
+    for (size_t i = 0; i < coups.size(); ++i) {
+        if (valeurs[i] > meilleureValeur) {
+            meilleureValeur = valeurs[i];
+            meilleurCoup    = coups[i];
         }
     }
     return meilleurCoup;

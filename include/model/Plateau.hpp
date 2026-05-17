@@ -138,6 +138,16 @@ public:
 
     /// @}
 
+    /**
+     * @brief Cree une copie profonde du plateau (cases + pieces).
+     *
+     * Necessaire pour le multi-threading de l'IA : chaque thread explore
+     * son propre clone sans interferer avec les autres. Les pieces sont
+     * recreees (meme type, couleur, drapeau aDejaBouge) et leur position
+     * pointe vers les nouvelles cases du clone.
+     */
+    std::shared_ptr<Plateau> clone() const;
+
 private:
     /// Cle = (x, y), valeur = Case partagee. std::map garantit l'absence
     /// de cle pour les positions invalides (trous de la grille).

@@ -59,6 +59,48 @@ void Plateau::clearEnPassant() {
     caseEnPassantPion.reset();
 }
 
+std::shared_ptr<Plateau> Plateau::clone() const {
+    auto copie = std::make_shared<Plateau>();
+
+    // Recree chaque piece sur la case correspondante du clone.
+    for (const auto& kv : cases) {
+        const auto& src = kv.second;
+        if (!src) continue;
+        auto piece = src->getPiece();
+        if (!piece || !piece->estVivante()) continue;
+
+        const std::string type = piece->getType();
+        std::shared_ptr<Piece> nouv;
+        if      (type == "Pion")     nouv = std::make_shared<Pion>(piece->getCouleur());
+        else if (type == "Tour")     nouv = std::make_shared<Tour>(piece->getCouleur());
+        else if (type == "Cavalier") nouv = std::make_shared<Cavalier>(piece->getCouleur());
+        else if (type == "Fou")      nouv = std::make_shared<Fou>(piece->getCouleur());
+        else if (type == "Reine")    nouv = std::make_shared<Reine>(piece->getCouleur());
+        else if (type == "Roi")      nouv = std::make_shared<Roi>(piece->getCouleur());
+        if (!nouv) continue;
+
+        nouv->setADejaBouge(piece->getADejaBouge());
+        auto destCase = copie->getCase(kv.first.first, kv.first.second);
+        if (destCase) {
+            destCase->setPiece(nouv);
+            nouv->setPosition(destCase);
+        }
+    }
+
+    // Recopie l'etat de prise en passant (par coordonnees, pas par pointeur).
+    if (caseEnPassantCible) {
+        auto cible = copie->getCase(caseEnPassantCible->getX(),
+                                    caseEnPassantCible->getY());
+        auto pion  = caseEnPassantPion
+                   ? copie->getCase(caseEnPassantPion->getX(),
+                                    caseEnPassantPion->getY())
+                   : nullptr;
+        copie->setEnPassant(cible, pion);
+    }
+
+    return copie;
+}
+
 std::shared_ptr<Case> Plateau::getCase(int x, int y) const {
     auto it = cases.find({x, y});
     return (it != cases.end()) ? it->second : nullptr;
@@ -77,7 +119,7 @@ int Plateau::nombreDeCases() const {
     return static_cast<int>(cases.size());
 }
 
-// ─── Placement initial des pieces (48 pieces) ──────────────────────────
+// Placement initial des pieces (48 pieces)
 //
 // Convention de placement (notation Yalta) :
 //   - back rank rang 1 :  Tour-Cav-Fou-Reine | Roi-Fou-Cav-Tour
@@ -201,7 +243,7 @@ Plateau::getPiecesDeCouleur(Couleur couleur) const {
     return res;
 }
 
-// ─── Topologie de bending Yalta ──────────────────────────────────────────
+// Topologie de bending Yalta
 //
 // Une piece glissante qui franchit une frontiere interne entre 2 sextants
 // voit sa direction "courbee" pour suivre la geometrie hexagonale. La
