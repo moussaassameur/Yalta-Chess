@@ -35,6 +35,7 @@ set(SOURCES_MOTEUR
     src/model/ModeleJeu.cpp
     # Phase 7 (IA MinMax)
     src/ia/MinMax.cpp
+    src/joueur/JoueurIA.cpp
 )
 
 set(HEADERS_MOTEUR
@@ -60,6 +61,7 @@ set(HEADERS_MOTEUR
     include/joueur/JoueurHumain.hpp
     include/model/ModeleJeu.hpp
     include/ia/MinMax.hpp
+    include/joueur/JoueurIA.hpp
 )
 
 # ─── Tests console (sans Qt) ─────────────────────────────────────────────
@@ -67,7 +69,7 @@ set(HEADERS_MOTEUR
 foreach(test_name IN ITEMS
         test_phase1 test_phase2 test_phase3
         test_tour test_cavalier test_fou test_reine test_roi
-        test_phase5 test_phase6_init test_roque test_en_passant test_minmax)
+        test_phase5 test_phase6_init test_roque test_en_passant test_minmax test_joueur_ia)
     add_executable(${test_name}
         tests/${test_name}.cpp
         ${SOURCES_MOTEUR}
