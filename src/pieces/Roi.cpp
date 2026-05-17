@@ -54,13 +54,38 @@ Roi::getDeplacements(const Plateau& plateau) const {
         coups.push_back(cible);
     };
 
-    // ─── 1 case dans les 8 directions ──────────────────────────────────
+    // 1 case dans les 8 directions
     for (const auto& d : dirs) {
         auto cible = plateau.voisin(position, d[0], d[1]);
         ajouterSiLegal(cible);
     }
 
-    // ─── Center-cross same-color depuis (3, 3) ─────────────────────────
+    // Roque kingside (impair sextant, xLocal=0, yLocal=3)
+    // Conditions : roi non bouge, tour non bougee, chemin libre.
+    // (La verification "pas en echec" est faite dans CoupRoque::estValide,
+    //  l'appeler ici provoquerait une recursion infinie via estEnEchec).
+    if (!aDejaBouge) {
+        const int sext = position->getSextant();
+        if (sext % 2 == 1) {
+            const int xL = position->getX() - OFFSET_X[sext];
+            const int yL = position->getY() - OFFSET_Y[sext];
+            if (xL == 0 && yL == 3) {
+                auto caseTour = plateau.getCase(OFFSET_X[sext], OFFSET_Y[sext]);
+                auto caseLib1 = plateau.getCase(OFFSET_X[sext], OFFSET_Y[sext] + 1);
+                auto caseLib2 = plateau.getCase(OFFSET_X[sext], OFFSET_Y[sext] + 2);
+                if (caseTour && caseTour->estOccupee()
+                    && caseTour->getPiece()->getType() == "Tour"
+                    && caseTour->getPiece()->getCouleur() == couleur
+                    && !caseTour->getPiece()->getADejaBouge()
+                    && caseLib1 && !caseLib1->estOccupee()
+                    && caseLib2 && !caseLib2->estOccupee()) {
+                    coups.push_back(caseLib1); // destination du roi (yLocal=1)
+                }
+            }
+        }
+    }
+
+    // Center-cross same-color depuis (3, 3)
     // Les destinations (i+2)%6 et (i+4)%6 ont la meme couleur damier
     // que la source -- la regle Yalta ne s'oppose pas.
     if (roiSurCentre) {

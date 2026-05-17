@@ -18,6 +18,7 @@ set(SOURCES_MOTEUR
     src/model/Historique.cpp
     src/coup/CoupSimple.cpp
     src/coup/CoupPromotion.cpp
+    src/coup/CoupRoque.cpp
     # Phase 3 (Pieces)
     src/pieces/Piece.cpp
     src/pieces/Pion.cpp
@@ -41,6 +42,7 @@ set(HEADERS_MOTEUR
     include/coup/Coup.hpp
     include/coup/CoupSimple.hpp
     include/coup/CoupPromotion.hpp
+    include/coup/CoupRoque.hpp
     include/pieces/Piece.hpp
     include/pieces/Pion.hpp
     include/pieces/Tour.hpp
@@ -60,7 +62,7 @@ set(HEADERS_MOTEUR
 foreach(test_name IN ITEMS
         test_phase1 test_phase2 test_phase3
         test_tour test_cavalier test_fou test_reine test_roi
-        test_phase5 test_phase6_init)
+        test_phase5 test_phase6_init test_roque)
     add_executable(${test_name}
         tests/${test_name}.cpp
         ${SOURCES_MOTEUR}

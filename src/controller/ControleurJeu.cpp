@@ -5,6 +5,8 @@
 #include "view/VueJeu.hpp"
 #include "coup/CoupSimple.hpp"
 #include "coup/CoupPromotion.hpp"
+#include "coup/CoupRoque.hpp"
+#include "pieces/Roi.hpp"
 #include "pieces/Piece.hpp"
 #include "pieces/Pion.hpp"
 #include "joueur/Joueur.hpp"
@@ -80,11 +82,35 @@ void ControleurJeu::gererClic(int x, int y) {
 
     if (destinationLegale) {
         std::shared_ptr<Coup> coup;
+
         // Promotion : pion qui atteint le back rank ennemi.
         auto pion = std::dynamic_pointer_cast<Pion>(piece);
         if (pion && Pion::estCaseDePromotion(caseClic, pion->getCouleur())) {
             std::string type = demanderPromotion();
             coup = std::make_shared<CoupPromotion>(caseSelectionnee, caseClic, type);
+
+        // Roque : roi se deplace de 2 cases en ligne droite dans le meme sextant.
+        } else if (std::dynamic_pointer_cast<Roi>(piece)
+                   && caseSelectionnee->getSextant() == caseClic->getSextant()) {
+            const int dx = caseClic->getX() - caseSelectionnee->getX();
+            const int dy = caseClic->getY() - caseSelectionnee->getY();
+            const bool estRoque = (dx == 0 && std::abs(dy) == 2)
+                                || (std::abs(dx) == 2 && dy == 0);
+            if (estRoque) {
+                // Direction de la tour (un pas de plus dans le meme sens).
+                const int sx = (dx > 0) - (dx < 0);
+                const int sy = (dy > 0) - (dy < 0);
+                auto tourDep = plateau->getCase(caseClic->getX()         + sx,
+                                                caseClic->getY()         + sy);
+                auto tourArr = plateau->getCase(caseSelectionnee->getX() + sx,
+                                                caseSelectionnee->getY() + sy);
+                if (tourDep && tourArr)
+                    coup = std::make_shared<CoupRoque>(
+                        caseSelectionnee, caseClic, tourDep, tourArr);
+            }
+            if (!coup)
+                coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
+
         } else {
             coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
         }
