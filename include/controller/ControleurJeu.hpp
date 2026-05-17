@@ -47,6 +47,15 @@ private slots:
     /// @brief Slot appele quand le joueur clique sur Annuler.
     void annulerCoup();
 
+    /**
+     * @brief Joue UN coup IA si c'est son tour, et reprogramme un appel
+     *        differe si l'IA suivante doit aussi jouer.
+     *
+     * Le delai entre coups permet a la VueJeu de redessiner et a
+     * l'utilisateur de voir chaque coup IA distinctement.
+     */
+    void pulserIA();
+
 private:
     std::shared_ptr<ModeleJeu> modele;
     std::shared_ptr<VueJeu>    vue;

@@ -68,6 +68,16 @@ public:
      */
     void annulerDernierCoup();
 
+    /**
+     * @brief Si le joueur actuel est une IA, joue UN seul coup et notifie.
+     * @return true si un coup IA a ete joue, false si humain / partie finie.
+     *
+     * Volontairement non-recursif : c'est le ControleurJeu qui rappelle
+     * cette methode via QTimer entre chaque coup, ce qui permet a l'UI
+     * de redessiner et a l'utilisateur de voir la sequence.
+     */
+    bool jouerUnCoupIASiNecessaire();
+
     /// @name Pattern Observer -- enregistrement / notification
     /// @{
 
@@ -103,10 +113,6 @@ private:
     std::vector<std::pair<std::shared_ptr<Case>,
                           std::shared_ptr<Case>>> historiqueEnPassant;
 
-    /// Drapeau anti-recursion : true pendant l'execution d'une chaine IA,
-    /// empeche jouerCoup() de relancer jouerSiIA() recursivement.
-    bool dansChaineIA = false;
-
     /// @brief Diffuse une notification a tous les observateurs.
     void notifier();
 
@@ -116,16 +122,6 @@ private:
 
     /// @brief Retire toutes les pieces d'une couleur du plateau.
     void supprimerPieces(Couleur c);
-
-    /**
-     * @brief Si le joueur actuel est une IA (jouerTour retourne un Coup),
-     *        le joue automatiquement. Sinon (humain), ne fait rien.
-     *
-     * Comme jouerCoup() rappelle cette methode a la fin, plusieurs IA
-     * peuvent s'enchainer toutes seules jusqu'a ce qu'un humain doive
-     * jouer ou que la partie se termine.
-     */
-    void jouerSiIA();
 };
 
 #endif // MODELE_JEU_HPP

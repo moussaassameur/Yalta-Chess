@@ -43,9 +43,8 @@ void ModeleJeu::demarrer(const std::vector<std::shared_ptr<Joueur>>& joueursPers
     historiqueEnPassant.clear();
 
     notifier();
-
-    // Si le premier joueur est une IA, qu'elle joue tout de suite.
-    jouerSiIA();
+    // C'est le ControleurJeu qui declenchera la chaine IA via QTimer
+    // pour permettre a l'UI de redessiner entre chaque coup.
 }
 
 void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
@@ -84,11 +83,8 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     tourSuivant();
     calculerEtat();
     notifier();
-
-    // Si le nouveau joueur actuel est une IA, qu'il joue tout seul.
-    // dansChaineIA empeche la recursion : si on est deja dans une chaine,
-    // c'est la boucle de jouerSiIA() qui s'en occupera, pas un nouvel appel.
-    if (!dansChaineIA) jouerSiIA();
+    // La chaine IA est declenchee par ControleurJeu via QTimer entre
+    // chaque coup, pour que l'UI puisse se rafraichir.
 }
 
 void ModeleJeu::calculerEtat() {
@@ -234,28 +230,17 @@ void ModeleJeu::detacher(std::shared_ptr<Observateur> obs) {
         observateurs.end());
 }
 
-void ModeleJeu::jouerSiIA() {
-    // Empeche la re-entree : si on est deja dans une chaine, on sort
-    // et on laisse la boucle existante continuer.
-    if (dansChaineIA) return;
-    dansChaineIA = true;
+bool ModeleJeu::jouerUnCoupIASiNecessaire() {
+    if (etat != EtatPartie::EN_COURS && etat != EtatPartie::ECHEC) return false;
+    if (!joueurActuel || joueurActuel->getEstElimine()) return false;
 
-    // Limite de securite : avec une IA peu profonde (profondeur 1 ou 2),
-    // 3 IA peuvent tourner en rond sans jamais matter -> on coupe au bout
-    // de N coups dans la meme chaine. 500 suffit pour une vraie partie
-    // mais protege contre les boucles infinies de tests.
-    constexpr int LIMITE_COUPS_CHAINE = 500;
-    int nbCoupsJoues = 0;
+    // jouerTour retourne nullptr pour un humain (il attend l'UI),
+    // ou un Coup pour une IA (calcule par son MinMax).
+    auto coup = joueurActuel->jouerTour(*plateau);
+    if (!coup) return false;
 
-    while (etat == EtatPartie::EN_COURS || etat == EtatPartie::ECHEC) {
-        if (!joueurActuel || joueurActuel->getEstElimine()) break;
-        auto coup = joueurActuel->jouerTour(*plateau);
-        if (!coup) break;
-        jouerCoup(coup);
-        if (++nbCoupsJoues >= LIMITE_COUPS_CHAINE) break;
-    }
-
-    dansChaineIA = false;
+    jouerCoup(coup);
+    return true;
 }
 
 void ModeleJeu::notifier() {

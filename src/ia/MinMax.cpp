@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <future>
 #include <limits>
+#include <random>
 #include <thread>
 #include <vector>
 
@@ -79,9 +80,14 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
     auto coups = genererCoupsLegaux(plateau, couleurIA);
     if (coups.empty()) return nullptr;
 
+    // Generateur aleatoire pour le tie-breaking entre coups equivalents.
+    // Sans ca, l'IA prend toujours le premier coup de la liste, ce qui
+    // produit du "shuffle" (meme piece deplacee en boucle).
+    static thread_local std::mt19937 gen(std::random_device{}());
+
     // Mode mono-thread
     if (nbThreads <= 1) {
-        std::shared_ptr<Coup> meilleurCoup = nullptr;
+        std::vector<std::shared_ptr<Coup>> meilleurs;
         int meilleureValeur = std::numeric_limits<int>::min();
         for (auto& coup : coups) {
             coup->executer(plateau);
@@ -91,10 +97,13 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
             coup->annuler(plateau);
             if (v > meilleureValeur) {
                 meilleureValeur = v;
-                meilleurCoup    = coup;
+                meilleurs      = {coup};
+            } else if (v == meilleureValeur) {
+                meilleurs.push_back(coup);
             }
         }
-        return meilleurCoup;
+        if (meilleurs.empty()) return nullptr;
+        return meilleurs[std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen)];
     }
 
     // Mode multi-thread
@@ -138,16 +147,20 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
         }
     }
 
-    // Selection du meilleur coup parmi les valeurs collectees.
-    std::shared_ptr<Coup> meilleurCoup = nullptr;
+    // Selection du meilleur coup parmi les valeurs collectees,
+    // avec tie-breaking aleatoire pour eviter le shuffle.
+    std::vector<std::shared_ptr<Coup>> meilleurs;
     int meilleureValeur = std::numeric_limits<int>::min();
     for (size_t i = 0; i < coups.size(); ++i) {
         if (valeurs[i] > meilleureValeur) {
             meilleureValeur = valeurs[i];
-            meilleurCoup    = coups[i];
+            meilleurs      = {coups[i]};
+        } else if (valeurs[i] == meilleureValeur) {
+            meilleurs.push_back(coups[i]);
         }
     }
-    return meilleurCoup;
+    if (meilleurs.empty()) return nullptr;
+    return meilleurs[std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen)];
 }
 
 int MinMax::minMax(Plateau& plateau, int profondeur,
@@ -159,10 +172,15 @@ int MinMax::minMax(Plateau& plateau, int profondeur,
 
     auto coups = genererCoupsLegaux(plateau, joueurCourant);
 
-    // Cas terminal : joueur sans coup possible. On considere la branche
-    // comme une fin de partie pour ce sous-arbre et on retourne la valeur
-    // actuelle du plateau.
+    // Cas terminal : joueur sans coup possible.
     if (coups.empty()) {
+        // Si le joueur est en echec sans coup -> il est mat.
+        // Selon que c'est l'IA ou un adversaire, c'est une perte ou un gain.
+        if (plateau.estEnEchec(joueurCourant)) {
+            if (joueurCourant == couleurIA) return -100000;  // -infini
+            else                            return +100000;  // +infini
+        }
+        // Sinon : pat (egalite pour ce joueur, neutre).
         return evaluer(plateau, couleurIA);
     }
 
@@ -195,9 +213,10 @@ int MinMax::minMax(Plateau& plateau, int profondeur,
 }
 
 int MinMax::evaluer(const Plateau& plateau, Couleur couleur) const {
-    // F(E) = sum(valeur pieces de `couleur`) - sum(valeur pieces adverses).
-    // C'est exactement la forme proposee par le prof pour Tic-Tac-Toe
-    // (lignes ouvertes PLUS - lignes ouvertes MOINS), adaptee aux echecs.
+    // Base : F(E) = somme(valeur pieces de `couleur`) - somme(adverses).
+    // C'est la forme proposee par le prof pour Tic-Tac-Toe, adaptee aux
+    // echecs. On ajoute ensuite plusieurs bonus/malus pour donner a l'IA
+    // un objectif clair (pas juste eviter de perdre du materiel).
     int score = 0;
     for (const auto& cas : plateau.getToutesLesCases()) {
         auto p = cas->getPiece();
@@ -206,5 +225,15 @@ int MinMax::evaluer(const Plateau& plateau, Couleur couleur) const {
         if (p->getCouleur() == couleur) score += v;
         else                            score -= v;
     }
+
+    // Bonus si on met un adversaire en echec : c'est un signe que l'on
+    // attaque -- guide l'IA vers l'aggressivite plutot que le shuffle.
+    for (Couleur c : {Couleur::BLANC, Couleur::ROUGE, Couleur::NOIR}) {
+        if (c == couleur) continue;
+        if (plateau.estEnEchec(c)) score += 30;
+    }
+    // Malus si on est nous-meme en echec.
+    if (plateau.estEnEchec(couleur)) score -= 30;
+
     return score;
 }

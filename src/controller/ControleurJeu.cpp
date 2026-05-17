@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QSpinBox>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -44,6 +45,18 @@ void ControleurJeu::initialiser() {
     // demarre le modele avec la composition choisie.
     auto joueurs = demanderConfigJoueurs();
     modele->demarrer(joueurs);
+    // Si le premier joueur est une IA, on declenche la pulsation.
+    pulserIA();
+}
+
+void ControleurJeu::pulserIA() {
+    if (modele->jouerUnCoupIASiNecessaire()) {
+        // Une IA a joue. On programme le prochain pulse apres un court
+        // delai pour laisser Qt redessiner et donner l'impression d'une
+        // partie qui se joue, pas d'un bloc instantane.
+        constexpr int DELAI_MS = 1500;
+        QTimer::singleShot(DELAI_MS, this, &ControleurJeu::pulserIA);
+    }
 }
 
 void ControleurJeu::gererClic(int x, int y) {
@@ -132,6 +145,9 @@ void ControleurJeu::gererClic(int x, int y) {
             coup = std::make_shared<CoupSimple>(caseSelectionnee, caseClic);
         }
         modele->jouerCoup(coup);
+        // Apres le coup humain, si le joueur suivant est une IA, on
+        // declenche la pulsation pour qu'elle joue (et la suivante etc.).
+        pulserIA();
     } else {
         vue->effacerSurlignage();
     }
@@ -211,7 +227,7 @@ std::vector<std::shared_ptr<Joueur>> ControleurJeu::demanderConfigJoueurs() {
 
         auto* spin = new QSpinBox(&dialog);
         spin->setRange(1, 4);
-        spin->setValue(2);
+        spin->setValue(3);
         spin->setEnabled(false);  // active uniquement si IA
         grille->addWidget(spin, i + 1, 2);
 

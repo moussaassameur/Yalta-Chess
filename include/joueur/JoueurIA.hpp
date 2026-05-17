@@ -20,7 +20,7 @@ public:
      * @param nbThreads  Nombre de threads pour la parallelisation (>= 1).
      */
     JoueurIA(const std::string& nom, Couleur couleur,
-             int profondeur = 2, int nbThreads = 4);
+             int profondeur = 3, int nbThreads = 4);
 
     ~JoueurIA() override = default;
 
