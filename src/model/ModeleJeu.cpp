@@ -4,6 +4,7 @@
 #include "model/Historique.hpp"
 #include "coup/Coup.hpp"
 #include "coup/CoupSimple.hpp"
+#include "joueur/Joueur.hpp"
 #include "joueur/JoueurHumain.hpp"
 #include "observer/Observateur.hpp"
 #include "pieces/Piece.hpp"
@@ -24,20 +25,27 @@ ModeleJeu::ModeleJeu()
 }
 
 void ModeleJeu::demarrer() {
-    // Cree les 3 joueurs humains avec leurs couleurs.
-    joueurs.clear();
-    joueurs.push_back(std::make_shared<JoueurHumain>("Joueur Blanc", Couleur::BLANC));
-    joueurs.push_back(std::make_shared<JoueurHumain>("Joueur Rouge", Couleur::ROUGE));
-    joueurs.push_back(std::make_shared<JoueurHumain>("Joueur Noir",  Couleur::NOIR));
-    joueurActuel = joueurs[0];
+    std::vector<std::shared_ptr<Joueur>> j;
+    j.push_back(std::make_shared<JoueurHumain>("Joueur Blanc", Couleur::BLANC));
+    j.push_back(std::make_shared<JoueurHumain>("Joueur Rouge", Couleur::ROUGE));
+    j.push_back(std::make_shared<JoueurHumain>("Joueur Noir",  Couleur::NOIR));
+    demarrer(j);
+}
 
-    // Plateau et historique remis a zero, pieces placees au depart.
+void ModeleJeu::demarrer(const std::vector<std::shared_ptr<Joueur>>& joueursPersos) {
+    joueurs      = joueursPersos;
+    joueurActuel = joueurs.empty() ? nullptr : joueurs[0];
+
     plateau    = std::make_shared<Plateau>();
     plateau->initialiserPiecesYalta();
     historique = std::make_shared<Historique>();
     etat       = EtatPartie::EN_COURS;
+    historiqueEnPassant.clear();
 
     notifier();
+
+    // Si le premier joueur est une IA, qu'elle joue tout de suite.
+    jouerSiIA();
 }
 
 void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
@@ -76,6 +84,11 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     tourSuivant();
     calculerEtat();
     notifier();
+
+    // Si le nouveau joueur actuel est une IA, qu'il joue tout seul.
+    // dansChaineIA empeche la recursion : si on est deja dans une chaine,
+    // c'est la boucle de jouerSiIA() qui s'en occupera, pas un nouvel appel.
+    if (!dansChaineIA) jouerSiIA();
 }
 
 void ModeleJeu::calculerEtat() {
@@ -219,6 +232,30 @@ void ModeleJeu::detacher(std::shared_ptr<Observateur> obs) {
     observateurs.erase(
         std::remove(observateurs.begin(), observateurs.end(), obs),
         observateurs.end());
+}
+
+void ModeleJeu::jouerSiIA() {
+    // Empeche la re-entree : si on est deja dans une chaine, on sort
+    // et on laisse la boucle existante continuer.
+    if (dansChaineIA) return;
+    dansChaineIA = true;
+
+    // Limite de securite : avec une IA peu profonde (profondeur 1 ou 2),
+    // 3 IA peuvent tourner en rond sans jamais matter -> on coupe au bout
+    // de N coups dans la meme chaine. 500 suffit pour une vraie partie
+    // mais protege contre les boucles infinies de tests.
+    constexpr int LIMITE_COUPS_CHAINE = 500;
+    int nbCoupsJoues = 0;
+
+    while (etat == EtatPartie::EN_COURS || etat == EtatPartie::ECHEC) {
+        if (!joueurActuel || joueurActuel->getEstElimine()) break;
+        auto coup = joueurActuel->jouerTour(*plateau);
+        if (!coup) break;
+        jouerCoup(coup);
+        if (++nbCoupsJoues >= LIMITE_COUPS_CHAINE) break;
+    }
+
+    dansChaineIA = false;
 }
 
 void ModeleJeu::notifier() {

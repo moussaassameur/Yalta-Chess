@@ -69,7 +69,7 @@ set(HEADERS_MOTEUR
 foreach(test_name IN ITEMS
         test_phase1 test_phase2 test_phase3
         test_tour test_cavalier test_fou test_reine test_roi
-        test_phase5 test_phase6_init test_roque test_en_passant test_minmax test_joueur_ia)
+        test_phase5 test_phase6_init test_roque test_en_passant test_minmax test_joueur_ia test_ia_integration)
     add_executable(${test_name}
         tests/${test_name}.cpp
         ${SOURCES_MOTEUR}

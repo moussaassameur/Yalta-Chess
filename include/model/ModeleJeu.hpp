@@ -40,8 +40,15 @@ public:
     ModeleJeu();
     ~ModeleJeu() = default;
 
-    /// @brief Initialise une nouvelle partie (joueurs, plateau, historique).
+    /// @brief Initialise une nouvelle partie avec 3 joueurs humains.
     void demarrer();
+
+    /**
+     * @brief Initialise une nouvelle partie avec des joueurs fournis.
+     * @param joueursPersos Les 3 joueurs (mix Humain/IA possible),
+     *        dans l'ordre BLANC, ROUGE, NOIR (le 1er joue en premier).
+     */
+    void demarrer(const std::vector<std::shared_ptr<Joueur>>& joueursPersos);
 
     /**
      * @brief Joue un coup s'il est valide, l'ajoute a l'historique et
@@ -96,6 +103,10 @@ private:
     std::vector<std::pair<std::shared_ptr<Case>,
                           std::shared_ptr<Case>>> historiqueEnPassant;
 
+    /// Drapeau anti-recursion : true pendant l'execution d'une chaine IA,
+    /// empeche jouerCoup() de relancer jouerSiIA() recursivement.
+    bool dansChaineIA = false;
+
     /// @brief Diffuse une notification a tous les observateurs.
     void notifier();
 
@@ -105,6 +116,16 @@ private:
 
     /// @brief Retire toutes les pieces d'une couleur du plateau.
     void supprimerPieces(Couleur c);
+
+    /**
+     * @brief Si le joueur actuel est une IA (jouerTour retourne un Coup),
+     *        le joue automatiquement. Sinon (humain), ne fait rien.
+     *
+     * Comme jouerCoup() rappelle cette methode a la fin, plusieurs IA
+     * peuvent s'enchainer toutes seules jusqu'a ce qu'un humain doive
+     * jouer ou que la partie se termine.
+     */
+    void jouerSiIA();
 };
 
 #endif // MODELE_JEU_HPP
