@@ -62,6 +62,7 @@ private:
     QGraphicsView*  vue;
     QLabel*         labelJoueur;
     QLabel*         labelEtat;
+    QLabel*         labelScores;
     class QPushButton* btnAnnuler;
 
     // Etat de surlignage local a la vue.

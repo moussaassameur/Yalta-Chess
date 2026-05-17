@@ -137,6 +137,7 @@ VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
       vue(new QGraphicsView(scene, this)),
       labelJoueur(new QLabel("Joueur : -", this)),
       labelEtat(new QLabel("Etat : EN COURS", this)),
+      labelScores(new QLabel("", this)),
       btnAnnuler(new QPushButton("Annuler", this)),
       caseSelectionnee(nullptr) {
     configurerInterface();
@@ -158,10 +159,18 @@ void VueJeu::configurerInterface() {
     barreInfo->addWidget(labelEtat);
     barreInfo->addWidget(btnAnnuler);
 
+    // Deuxieme barre : scores permanents des 3 joueurs.
+    labelScores->setStyleSheet(
+        "font-size: 14px; color: white; padding: 4px 0; "
+        "background-color: #404040; border-radius: 4px;");
+    labelScores->setAlignment(Qt::AlignCenter);
+    labelScores->setText("BLANC : 0   |   ROUGE : 0   |   NOIR : 0");
+
     QObject::connect(btnAnnuler, &QPushButton::clicked,
                      this, &VueJeu::annulerDemande);
 
     layout->addLayout(barreInfo);
+    layout->addWidget(labelScores);
     layout->addWidget(vue);
 
     setCentralWidget(central);
@@ -222,6 +231,27 @@ void VueJeu::mettreAJour(const ModeleJeu& m) {
                 QString::fromStdString(j->getNom()));
     }
     labelEtat->setText("Etat : " + txt + elimines);
+
+    // Mise a jour des scores permanents (BLANC | ROUGE | NOIR).
+    auto fmtScore = [](double s) -> QString {
+        if (s == 1.0) return "1";
+        if (s == 0.5) return "1/2";
+        return QString::number(s, 'g', 2);
+    };
+    QString scoresTxt;
+    bool premier = true;
+    for (Couleur c : {Couleur::BLANC, Couleur::ROUGE, Couleur::NOIR}) {
+        QString nomC = (c == Couleur::BLANC) ? "BLANC"
+                     : (c == Couleur::ROUGE) ? "ROUGE" : "NOIR";
+        double score = 0.0;
+        for (const auto& j : m.getJoueurs()) {
+            if (j->getCouleur() == c) { score = j->getScore(); break; }
+        }
+        if (!premier) scoresTxt += "   |   ";
+        scoresTxt += QString("%1 : %2").arg(nomC, fmtScore(score));
+        premier = false;
+    }
+    labelScores->setText(scoresTxt);
 
     caseSelectionnee = nullptr;
     coupsPossibles.clear();
