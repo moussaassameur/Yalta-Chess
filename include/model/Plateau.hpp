@@ -118,10 +118,34 @@ public:
 
     /// @}
 
+    /// @name Etat de la prise en passant
+    ///
+    /// Apres qu'un pion ait avance de 2 cases d'un coup, le pion adverse
+    /// situe immediatement a cote peut le capturer "en passant" comme s'il
+    /// n'avait avance que d'une case. Ce droit n'existe que pour le coup
+    /// suivant immediat -- ensuite il est perdu.
+    ///
+    ///   caseEnPassantCible : case "sautee" par le bond de 2 (destination
+    ///                        du pion qui capture).
+    ///   caseEnPassantPion  : case occupee par le pion qui a fait le bond
+    ///                        de 2 (sera retire si la capture a lieu).
+    /// @{
+
+    std::shared_ptr<Case> getCaseEnPassantCible() const;
+    std::shared_ptr<Case> getCaseEnPassantPion()  const;
+    void setEnPassant(std::shared_ptr<Case> cible, std::shared_ptr<Case> pion);
+    void clearEnPassant();
+
+    /// @}
+
 private:
     /// Cle = (x, y), valeur = Case partagee. std::map garantit l'absence
     /// de cle pour les positions invalides (trous de la grille).
     std::map<std::pair<int, int>, std::shared_ptr<Case>> cases;
+
+    /// Etat de la prise en passant (voir setEnPassant).
+    std::shared_ptr<Case> caseEnPassantCible;
+    std::shared_ptr<Case> caseEnPassantPion;
 
     /// Cree les 96 cases dans la map cases[]. Appelle dans le constructeur.
     void creerCases();

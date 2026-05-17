@@ -40,6 +40,25 @@ Plateau::Plateau() {
     creerCases();
 }
 
+std::shared_ptr<Case> Plateau::getCaseEnPassantCible() const {
+    return caseEnPassantCible;
+}
+
+std::shared_ptr<Case> Plateau::getCaseEnPassantPion() const {
+    return caseEnPassantPion;
+}
+
+void Plateau::setEnPassant(std::shared_ptr<Case> cible,
+                           std::shared_ptr<Case> pion) {
+    caseEnPassantCible = cible;
+    caseEnPassantPion  = pion;
+}
+
+void Plateau::clearEnPassant() {
+    caseEnPassantCible.reset();
+    caseEnPassantPion.reset();
+}
+
 std::shared_ptr<Case> Plateau::getCase(int x, int y) const {
     auto it = cases.find({x, y});
     return (it != cases.end()) ? it->second : nullptr;
