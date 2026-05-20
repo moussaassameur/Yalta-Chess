@@ -37,14 +37,23 @@ ControleurJeu::ControleurJeu(std::shared_ptr<ModeleJeu> modele,
                      this,      &ControleurJeu::gererClic);
     QObject::connect(vue.get(), &VueJeu::annulerDemande,
                      this,      &ControleurJeu::annulerCoup);
+    QObject::connect(vue.get(), &VueJeu::nouvellePartieDemandee,
+                     this,      &ControleurJeu::demarrerNouvellePartie);
 }
 
 void ControleurJeu::initialiser() {
+    // On affiche d'abord la page d'accueil. La partie demarre quand
+    // l'utilisateur clique sur "Nouvelle partie" (signal connecte a
+    // demarrerNouvellePartie).
     vue->afficher();
-    // On configure d'abord les joueurs via une fenetre modale, puis on
-    // demarre le modele avec la composition choisie.
+}
+
+void ControleurJeu::demarrerNouvellePartie() {
+    // Configuration des joueurs via une fenetre modale.
     auto joueurs = demanderConfigJoueurs();
     modele->demarrer(joueurs);
+    // Bascule sur le plateau de jeu.
+    vue->afficherJeu();
     // Si le premier joueur est une IA, on declenche la pulsation.
     pulserIA();
 }

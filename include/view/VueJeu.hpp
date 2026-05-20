@@ -11,6 +11,8 @@ class Case;
 class QGraphicsScene;
 class QGraphicsView;
 class QLabel;
+class QStackedWidget;
+class QPushButton;
 
 /**
  * @file VueJeu.hpp
@@ -35,8 +37,14 @@ public:
     /// Implementation de Observateur : redessine apres chaque notif.
     void mettreAJour(const ModeleJeu& modele) override;
 
-    /// Affiche la fenetre et ajuste le zoom au plateau.
+    /// Affiche la fenetre (sur la page d'accueil).
     void afficher();
+
+    /// Bascule l'affichage sur la page d'accueil.
+    void afficherAccueil();
+
+    /// Bascule l'affichage sur la page de jeu et ajuste le zoom.
+    void afficherJeu();
 
     /// Surligne une case selectionnee + ses coups possibles.
     void surligner(std::shared_ptr<Case> selection,
@@ -52,24 +60,31 @@ signals:
     /// Emis quand le joueur clique sur le bouton Annuler.
     void annulerDemande();
 
+    /// Emis quand le joueur demande une nouvelle partie (accueil ou en jeu).
+    void nouvellePartieDemandee();
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     std::shared_ptr<ModeleJeu> modele;
 
+    QStackedWidget* pile;          // empile page accueil + page jeu
     QGraphicsScene* scene;
     QGraphicsView*  vue;
     QLabel*         labelJoueur;
     QLabel*         labelEtat;
     QLabel*         labelScores;
-    class QPushButton* btnAnnuler;
+    QPushButton*    btnAnnuler;
+    QPushButton*    btnNouvellePartie;  // dans la barre de jeu
 
     // Etat de surlignage local a la vue.
     std::shared_ptr<Case>              caseSelectionnee;
     std::vector<std::shared_ptr<Case>> coupsPossibles;
 
     void configurerInterface();
+    QWidget* construirePageAccueil();
+    QWidget* construirePageJeu();
     void redessiner();
     void dessinerPlateau();
     void dessinerPieces();

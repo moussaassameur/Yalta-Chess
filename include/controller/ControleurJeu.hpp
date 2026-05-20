@@ -56,6 +56,12 @@ private slots:
      */
     void pulserIA();
 
+    /**
+     * @brief Lance une nouvelle partie : ouvre la config des joueurs,
+     *        demarre le modele et bascule l'affichage sur le plateau.
+     */
+    void demarrerNouvellePartie();
+
 private:
     std::shared_ptr<ModeleJeu> modele;
     std::shared_ptr<VueJeu>    vue;

@@ -14,6 +14,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QWidget>
+#include <QStackedWidget>
 #include <QPolygonF>
 #include <QPointF>
 #include <QPen>
@@ -25,6 +26,7 @@
 #include <QFrame>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QApplication>
 
 #include <array>
 #include <cmath>
@@ -133,12 +135,14 @@ static QString symbolePiece(const std::string& type) {
 VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
     : QMainWindow(parent),
       modele(modele),
+      pile(new QStackedWidget(this)),
       scene(new QGraphicsScene(this)),
       vue(new QGraphicsView(scene, this)),
       labelJoueur(new QLabel("Joueur : -", this)),
       labelEtat(new QLabel("Etat : EN COURS", this)),
       labelScores(new QLabel("", this)),
       btnAnnuler(new QPushButton("Annuler", this)),
+      btnNouvellePartie(new QPushButton("Nouvelle partie", this)),
       caseSelectionnee(nullptr) {
     configurerInterface();
 }
@@ -147,17 +151,67 @@ void VueJeu::configurerInterface() {
     setWindowTitle("Jeu d'echecs Yalta");
     resize(1000, 900);
 
-    QWidget* central = new QWidget(this);
-    QVBoxLayout* layout = new QVBoxLayout(central);
+    // La fenetre empile 2 pages : accueil (index 0) et jeu (index 1).
+    pile->addWidget(construirePageAccueil());
+    pile->addWidget(construirePageJeu());
+    setCentralWidget(pile);
+    pile->setCurrentIndex(0);
+}
+
+QWidget* VueJeu::construirePageAccueil() {
+    auto* page = new QWidget(this);
+    page->setStyleSheet("background-color: #303030;");
+
+    auto* layout = new QVBoxLayout(page);
+    layout->addStretch();
+
+    auto* titre = new QLabel("YALTA CHESS", page);
+    titre->setAlignment(Qt::AlignCenter);
+    titre->setStyleSheet("font-size: 48px; font-weight: bold; color: white;");
+
+    auto* sousTitre = new QLabel("Echecs hexagonaux a 3 joueurs", page);
+    sousTitre->setAlignment(Qt::AlignCenter);
+    sousTitre->setStyleSheet("font-size: 18px; color: #b0b0b0;");
+
+    auto* btnJouer = new QPushButton("Nouvelle partie", page);
+    btnJouer->setStyleSheet(
+        "font-size: 18px; padding: 12px 40px; background-color: #4caf50; "
+        "color: white; border-radius: 6px;");
+    QObject::connect(btnJouer, &QPushButton::clicked,
+                     this, &VueJeu::nouvellePartieDemandee);
+
+    auto* btnQuitter = new QPushButton("Quitter", page);
+    btnQuitter->setStyleSheet(
+        "font-size: 16px; padding: 8px 40px; background-color: #555; "
+        "color: white; border-radius: 6px;");
+    QObject::connect(btnQuitter, &QPushButton::clicked,
+                     qApp, &QApplication::quit);
+
+    layout->addWidget(titre);
+    layout->addWidget(sousTitre);
+    layout->addSpacing(40);
+    layout->addWidget(btnJouer,   0, Qt::AlignCenter);
+    layout->addSpacing(12);
+    layout->addWidget(btnQuitter, 0, Qt::AlignCenter);
+    layout->addStretch();
+
+    return page;
+}
+
+QWidget* VueJeu::construirePageJeu() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
 
     QHBoxLayout* barreInfo = new QHBoxLayout();
     labelJoueur->setStyleSheet("font-size: 16px; font-weight: bold; color: white;");
     labelEtat->setStyleSheet("font-size: 14px; color: white;");
     btnAnnuler->setStyleSheet("font-size: 13px; padding: 4px 12px;");
+    btnNouvellePartie->setStyleSheet("font-size: 13px; padding: 4px 12px;");
     barreInfo->addWidget(labelJoueur);
     barreInfo->addStretch();
     barreInfo->addWidget(labelEtat);
     barreInfo->addWidget(btnAnnuler);
+    barreInfo->addWidget(btnNouvellePartie);
 
     // Deuxieme barre : scores permanents des 3 joueurs.
     labelScores->setStyleSheet(
@@ -168,23 +222,34 @@ void VueJeu::configurerInterface() {
 
     QObject::connect(btnAnnuler, &QPushButton::clicked,
                      this, &VueJeu::annulerDemande);
+    QObject::connect(btnNouvellePartie, &QPushButton::clicked,
+                     this, &VueJeu::nouvellePartieDemandee);
 
     layout->addLayout(barreInfo);
     layout->addWidget(labelScores);
     layout->addWidget(vue);
 
-    setCentralWidget(central);
-    central->setStyleSheet("background-color: #303030;");
+    page->setStyleSheet("background-color: #303030;");
     vue->setRenderHint(QPainter::Antialiasing);
     vue->setBackgroundBrush(QBrush(QColor(48, 48, 48)));
     vue->setFrameShape(QFrame::NoFrame);
-
     vue->viewport()->installEventFilter(this);
+
+    return page;
 }
 
 void VueJeu::afficher() {
-    redessiner();
+    pile->setCurrentIndex(0);  // demarre sur l'accueil
     show();
+}
+
+void VueJeu::afficherAccueil() {
+    pile->setCurrentIndex(0);
+}
+
+void VueJeu::afficherJeu() {
+    pile->setCurrentIndex(1);
+    redessiner();
     vue->fitInView(scene->itemsBoundingRect().adjusted(-40, -40, 40, 40),
                    Qt::KeepAspectRatio);
 }
