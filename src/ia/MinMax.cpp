@@ -16,7 +16,7 @@
  * @file MinMax.cpp
  * @brief Implementation de l'algorithme MinMax pour Yalta (paranoiaque).
  *
- * Strategie suivie (extraite du texte du prof) :
+ * Strategie suivie  :
  *   1. On parcourt l'arbre des coups possibles en post-ordre (DFS).
  *   2. Aux feuilles (profondeur atteinte ou plus de coups) on appelle
  *      la fonction d'evaluation.

@@ -108,10 +108,21 @@ private:
     /// Liste des observateurs enregistres.
     std::vector<std::shared_ptr<Observateur>> observateurs;
 
+    /// Etat complet de la prise en passant a un instant donne.
+    struct EtatEnPassant {
+        std::shared_ptr<Case> cible;  ///< case sautee (destination du capteur)
+        std::shared_ptr<Case> pion;   ///< case du pion qui a fait le bond
+        int                   ttl;    ///< nb de coups adverses restants
+    };
+
+    /// Nombre de coups adverses pendant lesquels la prise en passant reste
+    /// possible. A 3 joueurs, un bond ouvre le droit pour les 2 adversaires
+    /// -> ttl = 2. Chaque coup non-bond le decremente ; a 0 le droit expire.
+    int enPassantTTL = 0;
+
     /// Pile des etats en passant avant chaque coup, pour pouvoir
     /// restaurer correctement lors d'un annulerDernierCoup().
-    std::vector<std::pair<std::shared_ptr<Case>,
-                          std::shared_ptr<Case>>> historiqueEnPassant;
+    std::vector<EtatEnPassant> historiqueEnPassant;
 
     /// @brief Diffuse une notification a tous les observateurs.
     void notifier();

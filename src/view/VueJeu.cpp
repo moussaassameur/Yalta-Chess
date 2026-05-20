@@ -424,19 +424,29 @@ void VueJeu::dessinerPieces() {
 
         QPointF centre = centreDeCase(c->getX(), c->getY(), c->getSextant());
 
+        // NOIR : piece tout noir, sans aucun contour.
+        // BLANC : piece blanche avec contour noir.
+        // ROUGE : piece rouge avec contour noir.
         QColor fond, contour;
+        const double epaisseur = 1.5;
+        bool sansContour = false;
         switch (piece->getCouleur()) {
             case Couleur::BLANC:
-                fond    = QColor(255, 255, 255); contour = QColor(0, 0, 0); break;
+                fond    = QColor(255, 255, 255); contour = QColor(0, 0, 0);
+                break;
             case Couleur::NOIR:
-                fond    = QColor(30, 30, 30);    contour = QColor(220, 220, 220); break;
+                fond        = QColor(0, 0, 0);
+                sansContour = true;
+                break;
             case Couleur::ROUGE:
-                fond    = QColor(214, 21, 65);   contour = QColor(40, 0, 0); break;
+                fond    = QColor(214, 21, 65);   contour = QColor(0, 0, 0);
+                break;
         }
 
         auto* texte = scene->addSimpleText(symbolePiece(piece->getType()), policePiece);
         texte->setBrush(QBrush(fond));
-        texte->setPen(QPen(contour, 1.2));
+        if (sansContour) texte->setPen(Qt::NoPen);
+        else             texte->setPen(QPen(contour, epaisseur));
 
         QRectF br = texte->boundingRect();
         texte->setPos(centre.x() - br.width()  / 2.0,

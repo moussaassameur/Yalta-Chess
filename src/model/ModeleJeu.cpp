@@ -41,6 +41,7 @@ void ModeleJeu::demarrer(const std::vector<std::shared_ptr<Joueur>>& joueursPers
     historique = std::make_shared<Historique>();
     etat       = EtatPartie::EN_COURS;
     historiqueEnPassant.clear();
+    enPassantTTL = 0;
 
     notifier();
     // C'est le ControleurJeu qui declenchera la chaine IA via QTimer
@@ -53,14 +54,19 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     // Sauvegarde l'etat en passant avant l'execution, pour pouvoir
     // restaurer lors d'un annulerDernierCoup().
     historiqueEnPassant.push_back({plateau->getCaseEnPassantCible(),
-                                   plateau->getCaseEnPassantPion()});
+                                   plateau->getCaseEnPassantPion(),
+                                   enPassantTTL});
 
     coup->executer(*plateau);
     historique->ajouter(coup);
 
-    // Met a jour la fenetre de prise en passant : reservee si le coup
-    // est un bond de pion de 2 cases, sinon le droit est perdu.
-    plateau->clearEnPassant();
+    // Met a jour la fenetre de prise en passant.
+    //   - Si le coup est un bond de pion de 2 cases : on (re)ouvre le droit
+    //     pour les 2 adversaires -> ttl = 2.
+    //   - Sinon : on decremente le ttl ; a 0, le droit expire.
+    // A 3 joueurs, ttl = 2 garantit que le joueur immediatement apres ET
+    // le joueur d'apres peuvent tous deux capturer en passant.
+    bool estBond = false;
     auto coupSimple = std::dynamic_pointer_cast<CoupSimple>(coup);
     if (coupSimple) {
         auto piece = coupSimple->getPiece();
@@ -73,11 +79,18 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
                 if (adx == 2 || ady == 2) {
                     auto sautee = plateau->getCase((dep->getX() + arr->getX()) / 2,
                                                    (dep->getY() + arr->getY()) / 2);
-                    if (sautee)
+                    if (sautee) {
                         plateau->setEnPassant(sautee, arr);
+                        enPassantTTL = 2;
+                        estBond = true;
+                    }
                 }
             }
         }
+    }
+    if (!estBond && enPassantTTL > 0) {
+        --enPassantTTL;
+        if (enPassantTTL == 0) plateau->clearEnPassant();
     }
 
     tourSuivant();
@@ -194,7 +207,8 @@ void ModeleJeu::annulerDernierCoup() {
     if (!historiqueEnPassant.empty()) {
         auto prev = historiqueEnPassant.back();
         historiqueEnPassant.pop_back();
-        if (prev.first) plateau->setEnPassant(prev.first, prev.second);
+        enPassantTTL = prev.ttl;
+        if (prev.cible) plateau->setEnPassant(prev.cible, prev.pion);
         else            plateau->clearEnPassant();
     }
 
