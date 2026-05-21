@@ -11,6 +11,10 @@
  * @brief Implementation du saut en L (avec bending Yalta + dedup).
  */
 
+// Offsets des sextants dans la grille 12x12 -- coherent avec Plateau/Case.
+static const int OFFSET_X[6] = { 0, 0, 8, 8, 4, 4 };
+static const int OFFSET_Y[6] = { 0, 4, 4, 8, 8, 0 };
+
 Cavalier::Cavalier(Couleur couleur) : Piece(couleur) {}
 
 std::string Cavalier::getType() const { return "Cavalier"; }
@@ -47,6 +51,29 @@ Cavalier::getDeplacements(const Plateau& plateau) const {
             int ddy = dy + pp[1];
             auto D = plateau.voisinDiagonal(M, ddx, ddy);
             if (D) destinations.insert({D->getX(), D->getY()});
+        }
+    }
+
+    // Cas special : Cavalier sur un sommet (3,3). Le sommet est la
+    // singularite centrale du plateau ou 6 sextants se rejoignent. Un
+    // saut de cavalier depuis ce point traverse le centre et atteint
+    // aussi les 2 cases voisines (orthogonales) du sommet de chacun des
+    // 2 sextants "lointains" (i+2)%6 et (i+4)%6. Ces sauts ne sont pas
+    // representables par la decomposition pas-a-pas classique ci-dessus.
+    {
+        const int s  = position->getSextant();
+        const int xL = position->getX() - OFFSET_X[s];
+        const int yL = position->getY() - OFFSET_Y[s];
+        if (xL == 3 && yL == 3) {
+            for (int delta : {2, 4}) {
+                const int sd = (s + delta) % 6;
+                const int ax = OFFSET_X[sd] + 3;  // sommet du sextant lointain
+                const int ay = OFFSET_Y[sd] + 3;
+                for (const auto& v : { plateau.getCase(ax - 1, ay),
+                                       plateau.getCase(ax, ay - 1) }) {
+                    if (v) destinations.insert({v->getX(), v->getY()});
+                }
+            }
         }
     }
 

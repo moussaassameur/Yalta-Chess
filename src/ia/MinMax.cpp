@@ -6,8 +6,8 @@
 #include "pieces/Piece.hpp"
 
 #include <algorithm>
-#include <future>
 #include <limits>
+#include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
@@ -21,8 +21,12 @@
  *   2. Aux feuilles (profondeur atteinte ou plus de coups) on appelle
  *      la fonction d'evaluation.
  *   3. On remonte les valeurs : noeud MAX = max des fils, noeud MIN = min.
- *   4. On ne copie jamais le plateau : on modifie via Coup::executer puis
- *      on restaure via Coup::annuler.
+ *   4. Dans la recursion, on ne copie jamais le plateau : on modifie via
+ *      Coup::executer puis on restaure via Coup::annuler.
+ *   5. En multi-thread, la racine est parallelisee avec un pattern THREAD
+ *      POOL : nbThreads threads se partagent les coups candidats via une
+ *      file commune protegee par des mutex. Chaque thread clone le plateau
+ *      pour avoir sa propre copie de travail.
  */
 
 namespace {
@@ -106,61 +110,86 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
         return meilleurs[std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen)];
     }
 
-    // Mode multi-thread
-    // On parallelise au niveau racine : chaque coup candidat est evalue
-    // dans un thread separe, qui travaille sur son propre clone du plateau.
-    // L'exploration recursive interne reste mono-thread (suffisant pour
-    // beneficier d'un speed-up significatif a la racine).
+    //  Mode multi-thread : pattern THREAD POOL (bassin de taches) 
     //
-    // Pour respecter nbThreads, on lance les futures par batches de
-    // nbThreads et on attend chaque batch avant le suivant.
-    std::vector<int> valeurs(coups.size());
-    const int batchSize = std::max(1, nbThreads);
+    // On parallelise la racine : chaque coup candidat est une "tache" a
+    // evaluer. nbThreads threads "workers" identiques se partagent ces
+    // taches via une file commune.
+    //
+    // Deux donnees sont PARTAGEES entre les threads -> protegees par mutex :
+    //   - prochaineTache            : index du prochain coup a distribuer ;
+    //   - meilleureValeur/meilleurs : le meilleur resultat trouve.
+    // Le calcul lui-meme (clone + minMax) tourne HORS verrou : c'est la
+    // partie qui doit s'executer en parallele. Chaque thread clone le
+    // plateau pour travailler sur sa propre copie (aucun plateau partage).
 
-    for (size_t debut = 0; debut < coups.size(); debut += batchSize) {
-        const size_t fin = std::min(debut + batchSize, coups.size());
-        std::vector<std::future<int>> futures;
-
-        for (size_t i = debut; i < fin; ++i) {
-            auto coupSimple = std::dynamic_pointer_cast<CoupSimple>(coups[i]);
-            // Coordonnees a transmettre au thread (les Case du plateau
-            // original ne sont PAS valides sur le clone).
-            const int xDep = coupSimple->getDepart()->getX();
-            const int yDep = coupSimple->getDepart()->getY();
-            const int xArr = coupSimple->getArrivee()->getX();
-            const int yArr = coupSimple->getArrivee()->getY();
-
-            futures.push_back(std::async(std::launch::async,
-                [this, &plateau, xDep, yDep, xArr, yArr]() {
-                    auto clone = plateau.clone();
-                    CoupSimple c(clone->getCase(xDep, yDep),
-                                 clone->getCase(xArr, yArr));
-                    c.executer(*clone);
-                    return minMax(*clone, profondeur - 1,
-                                  /*maximisant=*/false,
-                                  joueurSuivant(couleurIA));
-                }));
-        }
-
-        for (size_t i = debut; i < fin; ++i) {
-            valeurs[i] = futures[i - debut].get();
-        }
+    // Pre-extraction des coordonnees : les Case du plateau d'origine ne
+    // sont pas valides sur un clone, on transmet donc des (x, y).
+    struct Tache { int xDep, yDep, xArr, yArr; };
+    std::vector<Tache> taches;
+    taches.reserve(coups.size());
+    for (const auto& c : coups) {
+        auto cs = std::dynamic_pointer_cast<CoupSimple>(c);
+        taches.push_back({cs->getDepart()->getX(),  cs->getDepart()->getY(),
+                          cs->getArrivee()->getX(), cs->getArrivee()->getY()});
     }
 
-    // Selection du meilleur coup parmi les valeurs collectees,
-    // avec tie-breaking aleatoire pour eviter le shuffle.
-    std::vector<std::shared_ptr<Coup>> meilleurs;
-    int meilleureValeur = std::numeric_limits<int>::min();
-    for (size_t i = 0; i < coups.size(); ++i) {
-        if (valeurs[i] > meilleureValeur) {
-            meilleureValeur = valeurs[i];
-            meilleurs      = {coups[i]};
-        } else if (valeurs[i] == meilleureValeur) {
-            meilleurs.push_back(coups[i]);
+    std::mutex mutexFile;      // protege la distribution des taches
+    std::mutex mutexResultat;  // protege le meilleur resultat partage
+    size_t     prochaineTache  = 0;
+    int        meilleureValeur = std::numeric_limits<int>::min();
+    std::vector<size_t> meilleurs;
+
+    // Fonction executee par chaque thread du pool.
+    auto worker = [&]() {
+        while (true) {
+            // ── Section critique 1 : prendre une tache dans la file ──
+            size_t i;
+            {
+                std::lock_guard<std::mutex> verrou(mutexFile);
+                if (prochaineTache >= taches.size()) return;  // file vide
+                i = prochaineTache;
+                ++prochaineTache;
+            }
+
+            // ── Calcul en parallele, hors verrou, sur un clone prive ──
+            const Tache& t = taches[i];
+            auto clone = plateau.clone();
+            CoupSimple c(clone->getCase(t.xDep, t.yDep),
+                         clone->getCase(t.xArr, t.yArr));
+            c.executer(*clone);
+            const int v = minMax(*clone, profondeur - 1,
+                                 /*maximisant=*/false,
+                                 joueurSuivant(couleurIA));
+
+            // Section critique 2 : publier dans le resultat partage 
+            {
+                std::lock_guard<std::mutex> verrou(mutexResultat);
+                if (v > meilleureValeur) {
+                    meilleureValeur = v;
+                    meilleurs       = {i};
+                } else if (v == meilleureValeur) {
+                    meilleurs.push_back(i);
+                }
+            }
         }
+    };
+
+    // Lancement du pool : nbThreads threads identiques.
+    std::vector<std::thread> pool;
+    for (int t = 0; t < nbThreads; ++t) {
+        pool.emplace_back(worker);
     }
+    // Synchronisation : on attend la fin de tous les threads (join).
+    for (auto& th : pool) {
+        th.join();
+    }
+
+    // Tie-breaking aleatoire pour eviter le "shuffle" (toujours le 1er coup).
     if (meilleurs.empty()) return nullptr;
-    return meilleurs[std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen)];
+    const size_t choix =
+        std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen);
+    return coups[meilleurs[choix]];
 }
 
 int MinMax::minMax(Plateau& plateau, int profondeur,
@@ -174,7 +203,7 @@ int MinMax::minMax(Plateau& plateau, int profondeur,
 
     // Cas terminal : joueur sans coup possible.
     if (coups.empty()) {
-        // Si le joueur est en echec sans coup -> il est mat.
+        // Si le joueur est en echec sans coup  il est mat.
         // Selon que c'est l'IA ou un adversaire, c'est une perte ou un gain.
         if (plateau.estEnEchec(joueurCourant)) {
             if (joueurCourant == couleurIA) return -100000;  // -infini
