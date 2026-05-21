@@ -20,16 +20,7 @@ static const int OFFSET_Y[6] = { 0, 4, 4, 8, 8, 0 };
  * occupes par un sextant valide. Les 3 autres blocs restent vides
  * (= trous : aucune entree dans cases[]).
  *
- *   Vue de la grille (axe x horizontal, axe y vertical) :
- *
- *      x=0..3   x=4..7   x=8..11
- *     +-------+--------+--------+
- *     |  S0   |  S5    |  TROU  |   y=0..3
- *     +-------+--------+--------+
- *     |  S1   |  TROU  |  S2    |   y=4..7
- *     +-------+--------+--------+
- *     | TROU  |  S4    |  S3    |   y=8..11
- *     +-------+--------+--------+
+ *   Vue de la grille (axe x horizontal, axe y vertical) 
  *
  * La couleur damier (clair/fonce) alterne selon (x + y + sextant) modulo 2.
  * Le decalage par "sextant" assure que la transition damier reste correcte

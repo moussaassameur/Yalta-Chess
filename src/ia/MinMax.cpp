@@ -23,7 +23,7 @@
 
 namespace {
 
-// Valeur de chaque piece (standard echecs)
+// Valeur de chaque piece pour le calcul du score dans evaluer().
 int valeurPiece(const std::string& type) {
     if (type == "Pion")     return 1;
     if (type == "Cavalier") return 3;
@@ -43,7 +43,7 @@ genererCoupsLegaux(Plateau& plateau, Couleur couleur) {
         if (!depart) continue;  // piece morte ou capturee
         
         for (const auto& arrivee : piece->getCoupsLegaux(plateau)) {
-            // On cree un CoupSimple pour chaque destination possible
+           // Je demande à la pièce ses destinations possibles avec getCoupsLegaux()
             // L'IA n'a pas besoin des coups speciaux (roque, promotion) pour evaluer
             coups.push_back(std::make_shared<CoupSimple>(depart, arrivee));
         }
@@ -51,7 +51,7 @@ genererCoupsLegaux(Plateau& plateau, Couleur couleur) {
     return coups;
 }
 
-}  // namespace
+}  
 
 MinMax::MinMax(int profondeur, int nbThreads, Couleur couleurIA)
     : profondeur(profondeur),
@@ -63,7 +63,7 @@ int     MinMax::getProfondeur() const { return profondeur; }
 int     MinMax::getNbThreads()  const { return nbThreads; }
 Couleur MinMax::getCouleurIA()  const { return couleurIA; }
 
-// Rotation des joueurs : BLANC -> ROUGE -> NOIR -> BLANC
+// Rotation des joueurs 
 Couleur MinMax::joueurSuivant(Couleur c) {
     switch (c) {
         case Couleur::BLANC: return Couleur::ROUGE;
@@ -81,37 +81,12 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
     // Sans ca, l'IA joue toujours le meme coup et fait du shuffle
     static thread_local std::mt19937 gen(std::random_device{}());
 
-    // MODE MONO-THREAD
-    if (nbThreads <= 1) {
-        std::vector<std::shared_ptr<Coup>> meilleurs;
-        int meilleureValeur = std::numeric_limits<int>::min();
-        
-        // On teste chaque coup
-        for (auto& coup : coups) {
-            coup->executer(plateau);  // on joue le coup
-            const int v = minMax(plateau, profondeur - 1, false, joueurSuivant(couleurIA));
-            coup->annuler(plateau);   // on restore le plateau
-            
-            // On garde les meilleurs
-            if (v > meilleureValeur) {
-                meilleureValeur = v;
-                meilleurs = {coup};
-            } else if (v == meilleureValeur) {
-                meilleurs.push_back(coup);
-            }
-        }
-        
-        if (meilleurs.empty()) return nullptr;
-        // Choix aleatoire entre les meilleurs
-        return meilleurs[std::uniform_int_distribution<size_t>(0, meilleurs.size() - 1)(gen)];
-    }
-
-    //  MULTI-THREAD : Thread Pool
+    //  MULTI-THREAD  Thread Pool
     // Chaque thread evalue des coups en parallele
-    // 2 mutex : un pour distribuer les taches, un pour le resultat
+    // 2 mutex  un pour distribuer les taches, un pour le resultat
 
     // On extrait les coordonnees avant (les pointeurs Case* ne marchent pas sur un clone)
-    struct Tache { int xDep, yDep, xArr, yArr; };
+    struct Tache { int xDep, yDep, xArr, yArr; }; //
     std::vector<Tache> taches;
     taches.reserve(coups.size());
     for (const auto& c : coups) {
@@ -130,7 +105,7 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
     // Fonction executee par chaque thread
     auto worker = [&]() {
         while (true) {
-            // SECTION CRITIQUE 1 : prendre une tache
+            // section 1 : prendre une tache
             size_t i;
             {
                 std::lock_guard<std::mutex> verrou(mutexFile);
@@ -147,7 +122,7 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
             c.executer(*clone);
             const int v = minMax(*clone, profondeur - 1, false, joueurSuivant(couleurIA));
 
-            // SECTION CRITIQUE 2 : publier le resultat
+            // section 2 : publier le resultat
             {
                 std::lock_guard<std::mutex> verrou(mutexResultat);
                 if (v > meilleureValeur) {
@@ -160,9 +135,10 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
         }
     };
 
-    // Lancement des threads
+    // Lancement des threads (au moins 1 pour ne jamais planter)
+    const int n = std::max(1, nbThreads);
     std::vector<std::thread> pool;
-    for (int t = 0; t < nbThreads; ++t) {
+    for (int t = 0; t < n; ++t) {
         pool.emplace_back(worker);
     }
     
