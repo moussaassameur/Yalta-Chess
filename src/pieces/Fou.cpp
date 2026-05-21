@@ -87,10 +87,14 @@ Fou::getDeplacements(const Plateau& plateau) const {
             if (!ajouterSiPossible(suivante)) break;
             courante = suivante;
 
-            // Si on arrive sur un (3, 3), on offre le center-cross et on
-            // arrete cette diagonale (la continuation au-dela du centre
-            // serait ambigue avec la geometrie Yalta).
-            if (estCentreSextant(courante)) {
+            // La glissade arrive sur un sommet (3, 3). Deux cas :
+            //   - la direction locale pointe vers le centre mort (+1, +1) :
+            //     elle ne peut pas continuer -> on offre le center-cross
+            //     (les 2 diagonales same-color offertes au centre).
+            //   - sinon : la glissade ne fait que TRAVERSER le sommet ;
+            //     le bending de voisinDiagonal la prolonge normalement,
+            //     donc on ne declenche surtout pas de center-cross ici.
+            if (estCentreSextant(courante) && dx == 1 && dy == 1) {
                 proposerCenterCross(courante);
                 break;
             }
