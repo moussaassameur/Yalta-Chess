@@ -43,7 +43,7 @@
  * midpoint d'arete).
  */
 
-// ─── Geometrie de l'hexagone ─────────────────────────────────────────────
+//  Geometrie de l'hexagone 
 
 static const double TAILLE   = 350.0;
 static const double COTE     = TAILLE / 2.0;
@@ -130,7 +130,7 @@ static QString symbolePiece(const std::string& type) {
     return QString("?");
 }
 
-// ─── Implementation VueJeu ───────────────────────────────────────────────
+//  Implementation VueJeu 
 
 VueJeu::VueJeu(std::shared_ptr<ModeleJeu> modele, QWidget* parent)
     : QMainWindow(parent),
@@ -271,7 +271,7 @@ void VueJeu::mettreAJour(const ModeleJeu& m) {
         case EtatPartie::VICTOIRE:     txt = "VICTOIRE !";   break;
     }
 
-    // ── Message de victoire ─────────────────────────────────────────────────
+    //  Message de victoire 
     if (m.getEtat() == EtatPartie::VICTOIRE) {
         QString msg;
         for (const auto& j : m.getJoueurs()) {

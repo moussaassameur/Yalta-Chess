@@ -7,7 +7,7 @@
  * @brief Implementation des deplacements du Fou (diagonale + center-cross).
  */
 
-// Offsets des sextants -- doit rester coherent avec Plateau / Case.
+// Offsets des sextants  doit rester coherent avec Plateau / Case.
 static const int OFFSET_X[6] = { 0, 0, 8, 8, 4, 4 };
 static const int OFFSET_Y[6] = { 0, 4, 4, 8, 8, 0 };
 
@@ -74,7 +74,7 @@ Fou::getDeplacements(const Plateau& plateau) const {
         }
     };
 
-    // ─── Glissade diagonale dans les 4 directions ───
+    //  Glissade diagonale dans les 4 directions 
     for (const auto& d : dirs) {
         int dx = d[0];
         int dy = d[1];
@@ -101,7 +101,7 @@ Fou::getDeplacements(const Plateau& plateau) const {
         }
     }
 
-    // ─── Center-cross direct si le Fou est deja sur (3, 3) ───
+    //  Center-cross direct si le Fou est deja sur (3, 3) 
     if (estCentreSextant(position)) {
         proposerCenterCross(position);
     }

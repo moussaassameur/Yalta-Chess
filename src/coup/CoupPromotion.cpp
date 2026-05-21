@@ -9,18 +9,8 @@
 
 /**
  * @file CoupPromotion.cpp
- * @brief Deplacement d'un pion vers le back rank ennemi + remplacement
- *        par la piece choisie.
- *
- * executer() :
- *   1. Deplace le pion sur l'arrivee (capture eventuelle).
- *   2. Capture le pion (retire de la partie).
- *   3. Cree la piece de promotion et la pose sur l'arrivee.
- *
- * annuler() :
- *   1. Retire la piece de promotion.
- *   2. Ressuscite le pion et le repose au depart.
- *   3. Restaure la piece capturee eventuelle.
+ * @brief Implementation de CoupPromotion : un pion atteint le bord et est
+ *        remplace par la piece choisie.
  */
 
 CoupPromotion::CoupPromotion(std::shared_ptr<Case> depart,

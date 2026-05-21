@@ -9,25 +9,11 @@ class Piece;
 
 /**
  * @file CoupSimple.hpp
- * @brief Coup le plus courant : deplacer une piece d'une case vers une
- *        autre, avec capture eventuelle.
- *
- * Implemente l'interface Coup (Pattern Command). Memoorise tout ce qui
- * est necessaire pour annuler() :
- *   - la piece qui a ete deplacee (pour la remettre a son point de depart),
- *   - la piece capturee eventuelle (pour la ressusciter sur l'arrivee),
- *   - l'etat aDejaBouge de la piece avant le coup (drapeau utilise par
- *     les pieces sensibles : Pion pour le bond initial, Tour et Roi pour
- *     le roque).
+ * @brief Coup courant : deplacer une piece, avec capture eventuelle.
  */
 class CoupSimple : public Coup {
 public:
-    /**
-     * @brief Construit un coup simple entre deux cases.
-     * @param depart  Case de depart -- doit contenir une piece a executer.
-     * @param arrivee Case d'arrivee -- peut etre vide ou contenir une
-     *                piece adverse (qui sera capturee).
-     */
+    // depart : case avec la piece. arrivee : destination (vide ou ennemie).
     CoupSimple(std::shared_ptr<Case> depart,
                std::shared_ptr<Case> arrivee);
 
@@ -63,7 +49,7 @@ private:
     /// Sauvegarde du drapeau aDejaBouge de la piece avant execution.
     bool aDejaBougeAvant;
 
-    /// Drapeau interne : true si executer() a effectivement eu lieu.
+    /// Drapeau interne  true si executer() a effectivement eu lieu.
     bool execute;
 };
 

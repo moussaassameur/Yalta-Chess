@@ -10,20 +10,11 @@ class Piece;
 
 /**
  * @file CoupPromotion.hpp
- * @brief Coup de promotion : un pion atteint le back rank ennemi et est
- *        remplace par la piece choisie par le joueur.
- *
- * Implemente le pattern Command comme CoupSimple, avec en plus la
- * creation de la piece de promotion a l'execution et sa suppression
- * a l'annulation.
+ * @brief Promotion : un pion atteint le bord et devient une autre piece.
  */
 class CoupPromotion : public Coup {
 public:
-    /**
-     * @param depart    Case de depart (doit contenir le pion).
-     * @param arrivee   Case d'arrivee (back rank ennemi).
-     * @param typePiece "Reine", "Tour", "Fou" ou "Cavalier".
-     */
+    // typePiece : "Reine", "Tour", "Fou" ou "Cavalier".
     CoupPromotion(std::shared_ptr<Case> depart,
                   std::shared_ptr<Case> arrivee,
                   const std::string&    typePiece);

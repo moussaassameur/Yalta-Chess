@@ -61,9 +61,9 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
     historique->ajouter(coup);
 
     // Met a jour la fenetre de prise en passant.
-    //   - Si le coup est un bond de pion de 2 cases : on (re)ouvre le droit
+    //   Si le coup est un bond de pion de 2 cases : on (re)ouvre le droit
     //     pour les 2 adversaires -> ttl = 2.
-    //   - Sinon : on decremente le ttl ; a 0, le droit expire.
+    //   Sinon : on decremente le ttl ; a 0, le droit expire.
     // A 3 joueurs, ttl = 2 garantit que le joueur immediatement apres ET
     // le joueur d'apres peuvent tous deux capturer en passant.
     bool estBond = false;
@@ -110,7 +110,7 @@ void ModeleJeu::calculerEtat() {
             etat = mat ? EtatPartie::ECHEC_ET_MAT : EtatPartie::PAT;
 
             if (mat) {
-                // Determination du gagnant selon les regles Yalta : le
+                // Determination du gagnant selon les regles Yalta  le
                 // premier survivant (dans l'ordre du tour) qui met le roi
                 // mate en echec gagne 1 point, l'autre survivant prend 1/2.
                 int idxCourant = 0;

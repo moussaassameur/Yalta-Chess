@@ -5,20 +5,7 @@
 
 /**
  * @file CoupRoque.cpp
- * @brief Roque kingside -- Pattern Command.
- *
- * executer() :
- *   1. Sauvegarde les drapeaux aDejaBouge du Roi et de la Tour.
- *   2. Retire Roi et Tour de leurs cases.
- *   3. Pose Roi sur roiArrivee, Tour sur tourArrivee.
- *   4. Met aDejaBouge = true pour les deux.
- *
- * annuler() : operations symetriques, restaure les drapeaux d'origine.
- *
- * estValide() verifie :
- *   - Ni le Roi ni la Tour n'ont encore bouge.
- *   - Les cases de destination sont libres.
- *   - Le Roi n'est pas en echec au moment du roque.
+ * @brief Implementation de CoupRoque : le Roi et la Tour bougent ensemble.
  */
 
 CoupRoque::CoupRoque(std::shared_ptr<Case> roiDepart,

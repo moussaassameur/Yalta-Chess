@@ -4,38 +4,16 @@
 
 /**
  * @file Pion.cpp
- * @brief Deplacements du Pion selon les regles Yalta officielles.
- *
- * Avec la notation globale, chaque pion reste sur la meme colonne (file)
- * tout au long de sa vie : un pion sur la file 'a' passe de a1→a2→a3→a4
- * (sextant S0), puis a5→a6→a7→a8 (sextant S1). Un pion sur la file 'e'
- * passe de e1→e4 (S5), franchit le centre, puis e9→e12 (S4).
- *
- * Regles implementees :
- *   1. Avancement : 1 case dans la direction du "rook" (orthogonale)
- *      qui eloigne le pion de son back rank. Le bending de Plateau::
- *      voisinAvecDir gere automatiquement le passage d'un sextant a l'autre.
- *   2. Bond initial : si le pion n'a pas encore bouge, il peut avancer
- *      de 2 cases (les 2 cases devant lui doivent etre libres).
- *   3. Capture diagonale : 1 case dans une des 2 directions diagonales
- *      "avant" (composante perpendiculaire + composante forward). On utilise
- *      Plateau::voisinDiagonal qui applique la reflexion aux frontieres.
- *   4. Center-cross capture : si la diagonale sort simultanement par les
- *      deux bords d'un sextant (cas de l'apex vers le centre), le pion a
- *      deux options de capture -- les apexes des deux sextants de meme
- *      couleur situes en face. Cela ne s'applique QUE depuis l'apex du
- *      tiers propre du pion (il faut traverser LE CENTRE, pas simplement
- *      etre a un angle interne).
+ * @brief Deplacements du Pion : avance tout droit, capture en diagonale,
+ *        bond initial de 2 cases et prise en passant.
  */
 
 // Offsets des sextants dans la grille 12x12.
 static const int OFFSET_X[6] = { 0, 0, 8, 8, 4, 4 };
 static const int OFFSET_Y[6] = { 0, 4, 4, 8, 8, 0 };
 
-/**
- * @brief Indique si le sextant appartient au tiers du joueur.
- *   BLANC : S0 + S5     ROUGE : S1 + S2     NOIR : S3 + S4
- */
+// Indique si le sextant appartient au tiers du joueur.
+//   BLANC : S0+S5   ROUGE : S1+S2   NOIR : S3+S4
 static bool tiersPropre(Couleur c, int sextant) {
     switch (c) {
         case Couleur::BLANC: return sextant == 0 || sextant == 5;
@@ -95,17 +73,9 @@ Pion::getDeplacements(const Plateau& plateau) const {
         }
     }
 
-    // ── 2. Captures diagonales (bishop direction) ────────────────────────
-    //
-    // Les deux diagonales "avant" ont une composante dans le sens d'avance
-    // et une composante perpendiculaire (±1 sur l'autre axe).
-    //
-    // On utilise voisinDiagonal (reflexion aux frontieres) pour trouver
-    // la case cible. Si la diagonale sort simultanement par les deux bords
-    // du sextant (nxLocal>=4 ET nyLocal>=4), voisinDiagonal renvoie nullptr :
-    // c'est le passage par le centre. Dans ce cas, et uniquement si le pion
-    // est a l'apex de son PROPRE tiers, on propose les deux apexes adverses
-    // (center-cross capture, comme le fou).
+    // ── 2. Captures diagonales ──
+    // Les 2 diagonales "avant" via voisinDiagonal. Si la diagonale passe
+    // par le centre (apex du tiers propre), on propose les 2 apexes adverses.
     {
         const int perpX = (dx != 0) ? 0 : 1;
         const int perpY = (dy != 0) ? 0 : 1;
@@ -124,9 +94,7 @@ Pion::getDeplacements(const Plateau& plateau) const {
                 if (cible->estOccupee()
                     && cible->getPiece()->getCouleur() != couleur)
                     coups.push_back(cible);
-                // Prise en passant : la case diagonale est vide mais
-                // correspond a la case sautee par un pion adverse qui vient
-                // de faire son bond de 2.
+                // Prise en passant : case diagonale vide mais armee.
                 else if (!cible->estOccupee()
                          && cible == plateau.getCaseEnPassantCible()) {
                     auto casePion = plateau.getCaseEnPassantPion();

@@ -5,13 +5,7 @@
 
 /**
  * @file Reine.hpp
- * @brief Reine du jeu Yalta = Tour + Fou.
- *
- * Glissade dans les 8 directions (4 orthogonales + 4 diagonales) avec
- * bending Yalta. Le center-cross same-color depuis (3, 3) ne s'applique
- * qu'aux diagonales (cf. Fou) -- pour les directions orthogonales,
- * le bending classique de Plateau::voisinAvecDir suffit a faire passer
- * la Reine d'un sextant a l'autre.
+ * @brief Reine du jeu Yalta = Tour + Fou (glissade dans 8 directions).
  */
 class Reine : public Piece {
 public:

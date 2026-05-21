@@ -11,23 +11,7 @@ class Plateau;
 
 /**
  * @file Piece.hpp
- * @brief Classe de base abstraite pour toutes les pieces du jeu.
- *
- * Une piece connait sa couleur, sa position courante (case) et un drapeau
- * "a deja bouge" utilise par les pieces qui en dependent (Pion pour le
- * bond initial, Tour et Roi pour le roque). Les pieces qui ne s'en
- * servent pas l'ignorent simplement.
- *
- * Les sous-classes concretisent :
- *   - getType()       : libelle texte ("Pion", "Tour", ...).
- *   - getDeplacements : ensemble des cases atteignables, regles propres
- *                       a chaque piece + topologie Yalta.
- *
- * Cycle de vie :
- *   - capturer()    : marque la piece comme non-vivante (estVivante()
- *                     renvoie alors false). Sa position est invalidee.
- *   - ressusciter() : remet la piece en vie -- utilise par Coup::annuler
- *                     pour defaire une capture.
+ * @brief Classe de base abstraite de toutes les pieces.
  */
 class Piece {
 public:
@@ -61,24 +45,11 @@ public:
     /// @return Libelle texte du type ("Pion", "Tour", "Cavalier", ...).
     virtual std::string getType() const = 0;
 
-    /**
-     * @brief Liste les cases atteignables par la piece sur le plateau.
-     * @param plateau Plateau actuel (necessaire pour le voisinage).
-     * @return Vecteur des cases destinations possibles.
-     *
-     * Cette liste applique les regles propres a la piece + la topologie
-     * du plateau Yalta (bending, center-cross). Elle ne filtre PAS les
-     * coups qui mettent son propre roi en echec -- ce filtrage est du
-     * ressort du moteur de jeu (ModeleJeu, Phase 5).
-     */
+    // Cases atteignables par la piece (ne filtre pas l'echec au roi).
     virtual std::vector<std::shared_ptr<Case>>
     getDeplacements(const Plateau& plateau) const = 0;
 
-    /**
-     * @brief Filtre getDeplacements() en eliminant les coups qui laissent
-     *        le roi de la meme couleur en echec (coups illegaux).
-     * @param plateau Plateau courant (modifie temporairement puis restaure).
-     */
+    // Comme getDeplacements, mais retire les coups qui laissent son roi en echec.
     std::vector<std::shared_ptr<Case>>
     getCoupsLegaux(Plateau& plateau) const;
 

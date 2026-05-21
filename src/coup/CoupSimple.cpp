@@ -5,18 +5,7 @@
 
 /**
  * @file CoupSimple.cpp
- * @brief Implementation de CoupSimple (deplacement + capture eventuelle).
- *
- * executer() :
- *   1. Sauvegarde la piece du depart (pieceDeplacee) et son drapeau
- *      aDejaBouge avant modification.
- *   2. Sauvegarde la piece eventuellement presente sur l'arrivee
- *      (pieceCapturee) et la marque comme capturee (estVivante false).
- *   3. Vide la case de depart, place la piece sur l'arrivee, met a jour
- *      la position interne de la piece et son drapeau aDejaBouge.
- *
- * annuler() : effectue les operations symetriques pour ramener le
- *      plateau a son etat avant executer().
+ * @brief Implementation de CoupSimple : deplacement avec capture eventuelle.
  */
 
 CoupSimple::CoupSimple(std::shared_ptr<Case> depart,
@@ -38,9 +27,7 @@ void CoupSimple::executer(Plateau& /*plateau*/) {
 
     if (arrivee->estOccupee()) {
         pieceCapturee = arrivee->getPiece();
-        // On ne capture que si c'est une piece adverse. Si c'est une
-        // piece amie, c'est un coup illegal -- mais ici on suppose que
-        // estValide a deja ete appele en amont.
+        // On ne capture qu'une piece adverse.
         if (pieceCapturee->getCouleur() != pieceDeplacee->getCouleur()) {
             pieceCapturee->capturer();
         }
@@ -77,8 +64,7 @@ void CoupSimple::annuler(Plateau& /*plateau*/) {
 bool CoupSimple::estValide(const Plateau& /*plateau*/) const {
     if (!depart || !arrivee) return false;
     if (!depart->estOccupee()) return false;
-    // Pas de capture amie : si l'arrivee a une piece de la meme couleur
-    // que celle qui se deplace, le coup est invalide.
+    // Pas de capture d'une piece amie.
     if (arrivee->estOccupee()
         && arrivee->getPiece()->getCouleur() == depart->getPiece()->getCouleur()) {
         return false;

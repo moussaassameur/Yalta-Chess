@@ -5,10 +5,8 @@
 
 /**
  * @file CoupPriseEnPassant.cpp
- * @brief Capture en passant -- Pattern Command.
- *
- * Specificite : la case d'arrivee est vide pendant tout le coup. La piece
- * capturee est sur une case adjacente (casePionPris), pas sur l'arrivee.
+ * @brief Implementation de CoupPriseEnPassant : le pion capture est sur
+ *        une case adjacente, pas sur la case d'arrivee.
  */
 
 CoupPriseEnPassant::CoupPriseEnPassant(std::shared_ptr<Case> depart,
@@ -31,7 +29,7 @@ void CoupPriseEnPassant::executer(Plateau& /*plateau*/) {
     pieceCapturee   = casePionPris->getPiece();
     aDejaBougeAvant = pieceDeplacee->getADejaBouge();
 
-    // Retire le pion adverse de sa case (pas celle d'arrivee !).
+    // Retire le pion adverse de sa case (pas celle d'arrivee).
     pieceCapturee->capturer();
     casePionPris->retirerPiece();
 

@@ -9,20 +9,12 @@ class Piece;
 
 /**
  * @file CoupPriseEnPassant.hpp
- * @brief Prise en passant : capture speciale du pion qui vient d'avancer
- *        de 2 cases.
- *
- * Particularite : le pion capture n'est PAS sur la case d'arrivee du pion
- * qui capture -- il est sur une case adjacente (celle qu'il a atteinte
- * apres son bond de 2). La case d'arrivee est la case qu'il a "sautee".
+ * @brief Prise en passant : capture du pion adverse qui vient de faire
+ *        un bond de 2 cases.
  */
 class CoupPriseEnPassant : public Coup {
 public:
-    /**
-     * @param depart        Case du pion qui capture.
-     * @param arrivee       Case sautee par le pion adverse (destination).
-     * @param casePionPris  Case du pion adverse a retirer.
-     */
+    // depart : pion qui capture. arrivee : case sautee. casePionPris : pion retire.
     CoupPriseEnPassant(std::shared_ptr<Case> depart,
                        std::shared_ptr<Case> arrivee,
                        std::shared_ptr<Case> casePionPris);
