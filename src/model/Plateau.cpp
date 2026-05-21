@@ -235,7 +235,7 @@ std::vector<std::shared_ptr<Piece>>
 Plateau::getPiecesDeCouleur(Couleur couleur) const {
     std::vector<std::shared_ptr<Piece>> res;
     for (const auto& kv : cases) {
-        auto p = kv.second->getPiece();
+        auto p = kv.second->getPiece(); // piece sur la case (nullptr si vide)
         if (p && p->estVivante() && p->getCouleur() == couleur) {
             res.push_back(p);
         }
@@ -410,6 +410,25 @@ bool Plateau::estEnEchecPar(Couleur victime, Couleur attaquant) const {
         }
     }
     return false;
+}
+
+bool Plateau::aUnCoupLegal(Couleur c) {
+    // Le joueur peut jouer s'il reste au moins une piece avec un coup legal.
+    // getCoupsLegaux exclut deja les coups qui laissent son roi en echec.
+    for (const auto& p : getPiecesDeCouleur(c)) {
+        if (!p->getCoupsLegaux(*this).empty()) return true;
+    }
+    return false;
+}
+
+bool Plateau::estMat(Couleur c) {
+    // Echec et mat  le roi est attaque ET aucun coup ne peut le sauver
+    return estEnEchec(c) && !aUnCoupLegal(c);
+}
+
+bool Plateau::estPat(Couleur c) {
+    // Pat  le joueur est bloque (aucun coup legal) mais n'est PAS en echec
+    return !estEnEchec(c) && !aUnCoupLegal(c);
 }
 
 void Plateau::creerCases() {

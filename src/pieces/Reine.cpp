@@ -77,10 +77,14 @@ Reine::getDeplacements(const Plateau& plateau) const {
             if (!ajouterSiPossible(suivante)) break;
             courante = suivante;
 
-            // Center-cross same-color uniquement pour les diagonales
-            // arrivant en (3, 3). Pour les orthogonales, le bending de
-            // voisinAvecDir suffit a passer dans le sextant suivant.
-            if (diagonal && estCentreSextant(courante)) {
+            // La glissade diagonale arrive sur un sommet (3, 3). Le
+            // center-cross ne se declenche QUE si la direction locale
+            // pointe vraiment vers le centre mort (+1, +1) -- sinon la
+            // glissade ne fait que TRAVERSER le sommet et le bending de
+            // voisinDiagonal la prolonge normalement.
+            // Pour les orthogonales, le bending de voisinAvecDir suffit.
+            if (diagonal && estCentreSextant(courante)
+                         && dx == 1 && dy == 1) {
                 proposerCenterCross(courante);
                 break;
             }

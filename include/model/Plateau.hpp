@@ -67,6 +67,17 @@ public:
     /// @return true si le roi de `victime` est attaque specifiquement par `attaquant`.
     bool estEnEchecPar(Couleur victime, Couleur attaquant) const;
 
+    /// @return true si le joueur `c` possede au moins un coup legal.
+    bool aUnCoupLegal(Couleur c);
+
+    /// @return true si le joueur `c` est echec et mat
+    ///         (son roi est en echec ET il n'a aucun coup legal).
+    bool estMat(Couleur c);
+
+    /// @return true si le joueur `c` est pat
+    ///         (aucun coup legal mais son roi n'est PAS en echec).
+    bool estPat(Couleur c);
+
     /// @name Topologie Yalta -- voisinage avec bending
     ///
     /// Les pieces glissantes (Tour, Fou, Reine) avancent d'une case a la

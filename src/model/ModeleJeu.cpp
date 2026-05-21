@@ -103,22 +103,16 @@ void ModeleJeu::jouerCoup(std::shared_ptr<Coup> coup) {
 void ModeleJeu::calculerEtat() {
     while (joueurActuel && !joueurActuel->getEstElimine()) {
         const Couleur c = joueurActuel->getCouleur();
-        const bool enEchec = plateau->estEnEchec(c);
+        const bool mat = plateau->estMat(c);
+        const bool pat = plateau->estPat(c);
 
-        bool aUnCoupLegal = false;
-        for (const auto& p : plateau->getPiecesDeCouleur(c)) {
-            if (!p->getCoupsLegaux(*plateau).empty()) { aUnCoupLegal = true; break; }
-        }
+        if (mat || pat) {
+            etat = mat ? EtatPartie::ECHEC_ET_MAT : EtatPartie::PAT;
 
-        if (!aUnCoupLegal) {
-            etat = enEchec ? EtatPartie::ECHEC_ET_MAT : EtatPartie::PAT;
-
-            if (enEchec) {
-                // ── Determination du gagnant selon les regles Yalta ──────────
-                // On parcourt les survivants dans l'ordre apres le joueur elimine.
-                // Le premier qui peut capturer le roi gagne (1 pt).
-                // L'autre survivant prend 1/2 pt.
-                // Si les deux checkent, le premier dans l'ordre gagne.
+            if (mat) {
+                // Determination du gagnant selon les regles Yalta : le
+                // premier survivant (dans l'ordre du tour) qui met le roi
+                // mate en echec gagne 1 point, l'autre survivant prend 1/2.
                 int idxCourant = 0;
                 for (int i = 0; i < (int)joueurs.size(); ++i)
                     if (joueurs[i]->getCouleur() == c) { idxCourant = i; break; }
@@ -163,7 +157,8 @@ void ModeleJeu::calculerEtat() {
             tourSuivant();
 
         } else {
-            etat = enEchec ? EtatPartie::ECHEC : EtatPartie::EN_COURS;
+            etat = plateau->estEnEchec(c) ? EtatPartie::ECHEC
+                                          : EtatPartie::EN_COURS;
             return;
         }
     }
@@ -231,7 +226,7 @@ void ModeleJeu::annulerDernierCoup() {
     notifier();
 }
 
-// ─── Pattern Observer ────────────────────────────────────────────────────
+// Pattern Observer 
 
 void ModeleJeu::attacher(std::shared_ptr<Observateur> obs) {
     if (!obs) return;
@@ -266,7 +261,7 @@ void ModeleJeu::notifier() {
     }
 }
 
-// ─── Accesseurs ──────────────────────────────────────────────────────────
+// Accesseurs 
 
 EtatPartie                  ModeleJeu::getEtat()         const { return etat; }
 std::shared_ptr<Joueur>     ModeleJeu::getJoueurActuel() const { return joueurActuel; }
