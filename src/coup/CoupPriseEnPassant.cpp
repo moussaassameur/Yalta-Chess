@@ -75,13 +75,3 @@ bool CoupPriseEnPassant::estValide(const Plateau& /*plateau*/) const {
 
     return true;
 }
-
-std::string CoupPriseEnPassant::getNotation() const {
-    if (!depart || !arrivee) return "?";
-    std::string s;
-    s += depart->getNotation();
-    s += "x";
-    s += arrivee->getNotation();
-    s += " e.p.";
-    return s;
-}

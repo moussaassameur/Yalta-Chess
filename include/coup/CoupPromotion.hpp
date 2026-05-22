@@ -24,7 +24,6 @@ public:
     void        executer(Plateau& plateau)              override;
     void        annuler(Plateau& plateau)               override;
     bool        estValide(const Plateau& plateau) const override;
-    std::string getNotation() const                     override;
 
 private:
     std::shared_ptr<Case>  depart;

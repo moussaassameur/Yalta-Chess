@@ -74,8 +74,8 @@ Couleur MinMax::joueurSuivant(Couleur c) {
 }
 
 std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
-    auto coups = genererCoupsLegaux(plateau, couleurIA);
-    if (coups.empty()) return nullptr;
+    auto coups = genererCoupsLegaux(plateau, couleurIA); //je génère tous les coups possibles
+    if (coups.empty()) return nullptr; // si aucun coup possible, on retourne nullptr (échec et mat ou pat)
 
     // Generateur aleatoire pour choisir entre coups equivalents
     // Sans ca, l'IA joue toujours le meme coup et fait du shuffle
@@ -120,7 +120,7 @@ std::shared_ptr<Coup> MinMax::getMeilleurCoup(Plateau& plateau) {
             CoupSimple c(clone->getCase(t.xDep, t.yDep),
                          clone->getCase(t.xArr, t.yArr));
             c.executer(*clone);
-            const int v = minMax(*clone, profondeur - 1, false, joueurSuivant(couleurIA));
+            const int v = minMax(*clone, profondeur - 1, false, joueurSuivant(couleurIA));// Il évalue avec minMax()
 
             // section 2 : publier le resultat
             {

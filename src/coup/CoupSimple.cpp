@@ -72,16 +72,6 @@ bool CoupSimple::estValide(const Plateau& /*plateau*/) const {
     return true;
 }
 
-std::string CoupSimple::getNotation() const {
-    if (!depart || !arrivee) return "?";
-    const char sep = (pieceCapturee != nullptr) ? 'x' : '-';
-    std::string s;
-    s += depart->getNotation();
-    s += sep;
-    s += arrivee->getNotation();
-    return s;
-}
-
 std::shared_ptr<Case>  CoupSimple::getDepart()        const { return depart; }
 std::shared_ptr<Case>  CoupSimple::getArrivee()       const { return arrivee; }
 std::shared_ptr<Piece> CoupSimple::getPiece()         const { return pieceDeplacee; }

@@ -90,14 +90,3 @@ bool CoupPromotion::estValide(const Plateau& /*plateau*/) const {
         return false;
     return true;
 }
-
-std::string CoupPromotion::getNotation() const {
-    if (!depart || !arrivee) return "?";
-    const char sep = pieceCapturee ? 'x' : '-';
-    std::string s = depart->getNotation();
-    s += sep;
-    s += arrivee->getNotation();
-    s += '=';
-    s += typePiece[0]; // R, T, F, C
-    return s;
-}

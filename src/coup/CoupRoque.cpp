@@ -92,7 +92,3 @@ bool CoupRoque::estValide(const Plateau& plateau) const {
 
     return true;
 }
-
-std::string CoupRoque::getNotation() const {
-    return "O-O";
-}

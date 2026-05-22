@@ -21,9 +21,6 @@ public:
 
     // Verifie que le coup est jouable sur le plateau actuel.
     virtual bool estValide(const Plateau& plateau) const = 0;
-
-    // Notation du coup, ex. "a1-a4" ou "a1xa4".
-    virtual std::string getNotation() const = 0;
 };
 
 #endif // COUP_HPP
